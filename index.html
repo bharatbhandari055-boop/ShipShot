@@ -14,12 +14,12 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:16px/1
 body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .screen{display:none;height:100%;flex-direction:column}.screen.on{display:flex}
 button,input{font:inherit}
-input{width:100%;padding:14px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
-input:focus,button:focus-visible{outline:3px solid var(--acc);outline-offset:1px}
+input,select{width:100%;padding:14px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,select:focus,button:focus-visible{outline:3px solid var(--acc);outline-offset:1px}
 .btn{border:0;border-radius:10px;padding:14px 18px;font-weight:700;background:var(--ink);color:#fff}
 .btn.sm{padding:8px 12px;font-size:14px}.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
-#login{justify-content:center;padding:28px;max-width:420px;margin:auto;gap:14px}
-#login h1{font-size:34px;margin:0;letter-spacing:-.5px}#login p{margin:0 0 6px;color:var(--mut)}
+#login,#reg{justify-content:center;padding:28px;max-width:420px;margin:auto;gap:14px}
+#login h1,#reg h1{font-size:34px;margin:0;letter-spacing:-.5px}#login p,#reg p{margin:0 0 6px;color:var(--mut)}
 .err{color:var(--bad);min-height:1.4em;font-size:14px}
 header{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ink);color:#fff}
 header b{flex:1;font-size:18px}
@@ -47,10 +47,24 @@ header b{flex:1;font-size:18px}
 <section id="login" class="screen">
   <h1>ShipShot</h1>
   <p>Sign in once. The app keeps you signed in, also without network.</p>
-  <input id="u" placeholder="User ID" autocomplete="username">
+  <input id="u" type="tel" placeholder="Mobile number" autocomplete="username">
   <input id="p" type="password" placeholder="Password" autocomplete="current-password">
   <div class="err" id="lerr"></div>
   <button class="btn" id="go">Sign in</button>
+  <button class="btn ghost" id="toReg">New rider? Register</button>
+</section>
+
+<section id="reg" class="screen">
+  <h1>Rider registration</h1>
+  <p>Your request goes to the admin for approval.</p>
+  <input id="rn" placeholder="Full name" autocomplete="name">
+  <input id="rm" type="tel" placeholder="Mobile number" autocomplete="tel">
+  <input id="re" type="email" placeholder="Email (optional)" autocomplete="email">
+  <select id="rc"></select><select id="rh"></select>
+  <input id="rp" type="password" placeholder="Choose a password (6+ characters)" autocomplete="new-password">
+  <div class="err" id="rerr"></div>
+  <button class="btn" id="rgo">Send request</button>
+  <button class="btn ghost" id="toLogin">Back to sign in</button>
 </section>
 
 <section id="main" class="screen">
@@ -68,7 +82,6 @@ header b{flex:1;font-size:18px}
 
 <script>
 /* ---- Settings ---- */
-const API_URL = '';        // Set to the real upload endpoint. Empty = simulated upload for testing.
 const MAX_SIDE = 1600;     // longest photo side in pixels
 const JPEG_Q = 0.75;       // compression quality
 
@@ -84,17 +97,35 @@ const allP = () => tx('readonly', s=>s.getAll());
 
 /* ---- Login (demo: replace with real API call) ---- */
 const getUser = () => { try { return JSON.parse(localStorage.getItem('ss_user')); } catch { return null; } };
-$('#go').onclick = () => {
-  const u=$('#u').value.trim(), p=$('#p').value;
-  if(!u||!p){ $('#lerr').textContent='Enter your user ID and password.'; return; }
-  localStorage.setItem('ss_user', JSON.stringify({u, token:'demo-token'}));
-  show();
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const post=(url,body)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+let regMode=false, HUBS=[];
+$('#go').onclick = async () => {
+  const m=$('#u').value.trim(), p=$('#p').value;
+  if(!m||!p){ $('#lerr').textContent='Enter your mobile number and password.'; return; }
+  try{
+    const r=await post('/api/login',{mobile:m,password:p}), j=await r.json(); if(!r.ok) throw new Error(j.error);
+    localStorage.setItem('ss_user', JSON.stringify({u:j.user.mobile, name:j.user.name, token:j.token})); $('#lerr').textContent=''; show();
+  }catch(e){ $('#lerr').textContent=e.message==='Failed to fetch'?'No connection. The first sign-in needs internet.':e.message; }
+};
+async function loadHubs(){
+  try{ HUBS=await (await fetch('/api/hubs')).json(); }catch{ HUBS=[]; }
+  $('#rc').innerHTML='<option value="">City</option>'+[...new Set(HUBS.map(h=>h.city))].map(c=>`<option>${esc(c)}</option>`).join(''); fillHubs();
+}
+function fillHubs(){ $('#rh').innerHTML='<option value="">Hub</option>'+HUBS.filter(h=>h.city===$('#rc').value).map(h=>`<option>${esc(h.hub)}</option>`).join(''); }
+$('#rc').onchange=fillHubs;
+$('#toReg').onclick=()=>{regMode=true;show();loadHubs()}; $('#toLogin').onclick=()=>{regMode=false;show()};
+$('#rgo').onclick=async()=>{
+  try{
+    const r=await post('/api/register',{name:$('#rn').value,mobile:$('#rm').value,email:$('#re').value,city:$('#rc').value,hub:$('#rh').value,password:$('#rp').value}), j=await r.json();
+    if(!r.ok) throw new Error(j.error); regMode=false; $('#rerr').textContent=''; show(); toast('Request sent. Sign in after the admin approves it.');
+  }catch(e){ $('#rerr').textContent=e.message==='Failed to fetch'?'No connection. Registration needs internet.':e.message; }
 };
 $('#out').onclick = () => { localStorage.removeItem('ss_user'); show(); };
 
 function show(){
   const u=getUser();
-  $('#login').classList.toggle('on',!u); $('#main').classList.toggle('on',!!u);
+  const reg=regMode&&!u; $('#login').classList.toggle('on',!u&&!reg); $('#reg').classList.toggle('on',reg); $('#main').classList.toggle('on',!!u);
   if(u){ startCam(); startGPS(); refresh(); syncQueue(); navigator.storage?.persist?.(); }
 }
 
@@ -164,17 +195,17 @@ $('#snap').onclick = async () => {
 
 /* ---- Upload + sync ---- */
 async function upload(p){
-  if(!API_URL){ await new Promise(r=>setTimeout(r,700)); return true; }   // simulated
-  const fd=new FormData(); fd.append('photo',p.blob,p.id+'.jpg');
-  ['id','shipmentId','scanned','user','lat','lng','accuracy','deviceTime','gpsTime'].forEach(k=>fd.append(k,p[k]));
-  const r=await fetch(API_URL,{method:'POST',body:fd,headers:{Authorization:'Bearer '+getUser().token}});
+  const photo=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result.split(',')[1]);f.readAsDataURL(p.blob)});
+  const body={photo}; ['id','shipmentId','scanned','lat','lng','accuracy','deviceTime','gpsTime'].forEach(k=>body[k]=p[k]);
+  const r=await fetch('/api/photos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getUser().token},body:JSON.stringify(body)});
+  if(r.status===401||r.status===403){ localStorage.removeItem('ss_user'); show(); toast('Signed out. Sign in again; your photos are still saved.'); return false; }
   return r.ok;
 }
 let syncing=false;
 async function syncQueue(){
   if(syncing||!navigator.onLine) return; syncing=true;
   try{
-    for(const p of (await allP()).filter(p=>p.status==='pending')){
+    for(const p of (await allP()).filter(p=>p.status==='pending'&&p.user===getUser()?.u)){
       try{ if(await upload(p)) await putP({...p,blob:null,status:'synced',syncedAt:new Date().toISOString()}); else break; }
       catch{ break; }
       refresh();

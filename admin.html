@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ShipShot Admin</title>
+<style>
+:root{--ink:#10202e;--bg:#eef1f3;--line:#cfd7dd;--mut:#5b6b78;--acc:#c8641a;--ok:#1a7f4b;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
+header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center}header b{font-size:18px;margin-right:auto}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px}main{padding:0 16px 24px}
+button{font:inherit;border:0;border-radius:8px;padding:8px 14px;font-weight:600;background:var(--ink);color:#fff;cursor:pointer}
+button.o{background:#fff;color:var(--ink);border:2px solid var(--line)}button.on{background:var(--acc)}button.d{background:var(--bad)}button.g{background:var(--ok)}
+input,select{padding:8px;border:2px solid var(--line);border-radius:8px;font:inherit;max-width:100%}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.tw{overflow-x:auto;background:#fff;border:2px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--mut)}
+tr.c{cursor:pointer}tr.c:hover{background:#f4f6f8}
+dialog{border:0;border-radius:12px;padding:18px;width:min(420px,94vw)}dialog label{display:block;margin:8px 0 2px;color:var(--mut);font-size:13px}dialog input,dialog select{width:100%}
+.err{color:#b42318;min-height:1.3em}#login{max-width:340px;margin:12vh auto;display:grid;gap:10px;padding:0 16px}
+.s-pending{color:#b7791f}.s-approved{color:var(--ok)}.s-rejected{color:var(--bad)}
+</style></head><body>
+<div id="login"><h2>ShipShot admin</h2><input id="m" placeholder="Mobile number" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div class="err" id="lerr"></div><button id="go">Sign in</button></div>
+<div id="app" hidden><header><b>ShipShot admin</b><span id="who"></span><button class="o" id="out">Sign out</button></header><nav id="nav"></nav><main id="main"></main></div>
+<dialog id="dlg"></dialog>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let T=localStorage.getItem('ss_admin'),ME,HUBS=[],tab='req',LIST=[];
+const RL={super_admin:'Super admin',admin:'Admin',semi_admin:'Semi admin',viewer:'Viewer',rider:'Rider'};
+const canWrite=()=>['super_admin','admin','semi_admin'].includes(ME.role),canDel=()=>['super_admin','admin'].includes(ME.role);
+const allowed=()=>{const a=[...new Set(HUBS.map(x=>x.city))];return ME.role==='super_admin'||ME.scope_all?a:a.filter(c=>(ME.cities||[]).includes(c))};
+async function api(url,o={}){const r=await fetch(url,{method:o.method||'GET',headers:{'Content-Type':'application/json',Authorization:'Bearer '+T},body:o.body?JSON.stringify(o.body):undefined});
+  if(r.status===401){logout();throw new Error('Please sign in.')}
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Error');return j}
+async function dl(url,name){const r=await fetch(url,{headers:{Authorization:'Bearer '+T}});if(!r.ok)return alert('Download failed');const a=document.createElement('a');a.href=URL.createObjectURL(await r.blob());a.download=name;a.click()}
+function logout(){localStorage.removeItem('ss_admin');T=null;$('#app').hidden=true;$('#login').hidden=false}
+$('#out').onclick=logout;
+$('#go').onclick=async()=>{try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mobile:$('#m').value,password:$('#pw').value})});const j=await r.json();
+  if(!r.ok)throw new Error(j.error);if(j.user.role==='rider')throw new Error('This portal is for admins only.');T=j.token;localStorage.setItem('ss_admin',T);start()}catch(e){$('#lerr').textContent=e.message}};
+async function start(){if(!T)return;try{ME=(await api('/api/me')).user;HUBS=await api('/api/hubs')}catch{return}
+  $('#login').hidden=true;$('#app').hidden=false;$('#who').textContent=ME.name+' ('+RL[ME.role]+(ME.role==='super_admin'?'':' · '+(ME.scope_all?'all cities':(ME.cities||[]).join(', ')||'no cities'))+')';go()}
+function go(){const t=[['req','Requests'],['riders','Riders'],['photos','Photos']];if(ME.role==='super_admin')t.push(['staff','Staff'],['hubs','City / hub']);
+  $('#nav').innerHTML=t.map(([k,l])=>`<button class="${k===tab?'on':'o'}" data-t="${k}">${l}</button>`).join('');
+  $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;go()});
+  const m=$('#main');({req,riders,photos,staff,hubs})[tab](m).catch(e=>m.textContent=e.message)}
+function table(rows){return `<div class="tw"><table><tr><th>Name</th><th>Mobile</th><th>City</th><th>Hub</th><th>Status</th><th>Requested</th></tr>${rows.map((u,i)=>`<tr class="c" data-i="${i}"><td>${esc(u.name)}</td><td>${esc(u.mobile)}</td><td>${esc(u.city)}</td><td>${esc(u.hub)}</td><td class="s-${esc(u.status)}">${esc(u.status)}</td><td>${new Date(u.created_at).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="6">Nothing here.</td></tr>'}</table></div>`}
+async function list(m,qs,extra=''){LIST=await api('/api/users?'+qs);m.innerHTML=extra+table(LIST);m.querySelectorAll('tr.c').forEach(r=>r.onclick=()=>edit(LIST[r.dataset.i]))}
+async function req(m){await list(m,'role=rider&status=pending')}
+async function riders(m){await list(m,'role=rider','<div class="bar"><button class="o" id="dlr">Download riders CSV</button></div>');$('#dlr').onclick=()=>dl('/api/export/riders.csv','riders.csv')}
+async function staff(m){LIST=await api('/api/users?role=staff');m.innerHTML='<div class="bar"><button id="add">Add staff</button></div><div class="tw"><table><tr><th>Name</th><th>Mobile</th><th>Role</th><th>Cities</th><th>Status</th></tr>'+(LIST.map((u,i)=>`<tr class="c" data-i="${i}"><td>${esc(u.name)}</td><td>${esc(u.mobile)}</td><td>${RL[u.role]}</td><td>${u.scope_all?'All cities':esc((u.cities||[]).join(', '))||'None'}</td><td class="s-${esc(u.status)}">${esc(u.status)}</td></tr>`).join('')||'<tr><td colspan="5">No staff yet.</td></tr>')+'</table></div>';
+  m.querySelectorAll('tr.c').forEach(r=>r.onclick=()=>edit(LIST[r.dataset.i]));$('#add').onclick=()=>edit(null)}
+function edit(u){const isNew=!u,su=ME.role==='super_admin',W=canWrite(),role0=u?u.role:'admin',cities=allowed();if(u&&u.city&&!cities.includes(u.city))cities.push(u.city);
+  const opt=(a,sel)=>a.map(x=>`<option ${x===sel?'selected':''}>${esc(x)}</option>`).join(''),allC=[...new Set(HUBS.map(x=>x.city))];
+  const roleOpts=['rider','admin','semi_admin','viewer'].filter(r=>!isNew||r!=='rider').map(r=>`<option value="${r}" ${r===role0?'selected':''}>${RL[r]}</option>`).join('');
+  $('#dlg').innerHTML=`<h3>${isNew?'New staff':esc(u.name)}</h3><label>Name</label><input id="f_name" value="${esc(u?.name)}"><label>Mobile</label><input id="f_mobile" value="${esc(u?.mobile)}"><label>Email</label><input id="f_email" value="${esc(u?.email)}">
+  ${su?`<label>Role</label><select id="f_role">${roleOpts}</select>`:''}
+  <div id="sr"><label>City</label><select id="f_city">${opt(cities,u?.city)}</select><label>Hub</label><select id="f_hub"></select><label>Status</label><select id="f_status">${opt(['pending','approved','rejected'],u?.status)}</select></div>
+  <div id="ss"><label>City access</label><label><input type="checkbox" id="f_all" ${u?.scope_all?'checked':''} style="width:auto"> All cities</label><div id="cb">${allC.map(c=>`<label><input type="checkbox" class="cc" value="${esc(c)}" ${(u?.cities||[]).includes(c)?'checked':''} style="width:auto"> ${esc(c)}</label>`).join('')||'Add cities under City / hub first.'}</div></div>
+  <label>${isNew?'Password':'New password (leave empty to keep)'}</label><input id="f_password" type="password"><div class="err" id="ferr"></div>
+  <div class="bar" style="margin-top:10px">${W?'<button id="sv">Save</button>':''}${W&&u&&u.role==='rider'&&u.status!=='approved'?'<button class="g" id="ap">Approve</button>':''}${u&&canDel()?'<button class="d" id="rm">Delete</button>':''}<button class="o" id="cl">Close</button></div>`;
+  const curRole=()=>su?$('#f_role').value:role0;
+  const sync=()=>{const r=curRole()==='rider';$('#sr').hidden=!r;$('#ss').hidden=r;$('#cb').hidden=$('#f_all').checked};
+  const hubSel=()=>{const c=$('#f_city').value,hs=HUBS.filter(x=>x.city===c).map(x=>x.hub);if(u&&u.hub&&u.city===c&&!hs.includes(u.hub))hs.push(u.hub);$('#f_hub').innerHTML=opt(hs,u&&u.hub)};
+  $('#f_city').onchange=hubSel;hubSel();$('#f_all').onchange=sync;if(su)$('#f_role').onchange=sync;sync();
+  if(!W)$('#dlg').querySelectorAll('input,select').forEach(e=>e.disabled=true);
+  const run=async f=>{try{await f();$('#dlg').close();go()}catch(e){$('#ferr').textContent=e.message}};
+  $('#cl').onclick=()=>$('#dlg').close();
+  if($('#sv'))$('#sv').onclick=()=>run(()=>{const r=curRole(),b={name:$('#f_name').value,mobile:$('#f_mobile').value,email:$('#f_email').value};
+    if($('#f_password').value)b.password=$('#f_password').value;if(su)b.role=r;
+    if(r==='rider'){b.city=$('#f_city').value;b.hub=$('#f_hub').value;b.status=$('#f_status').value}
+    else{b.scope_all=$('#f_all').checked;b.cities=[...document.querySelectorAll('.cc:checked')].map(x=>x.value)}
+    return isNew?api('/api/staff',{method:'POST',body:b}):api('/api/users/'+u.id,{method:'PATCH',body:b})});
+  if($('#ap'))$('#ap').onclick=()=>run(()=>api('/api/users/'+u.id,{method:'PATCH',body:{status:'approved'}}));
+  if($('#rm'))$('#rm').onclick=()=>{if(confirm('Delete '+u.name+'? Their past photo records stay in the data.'))run(()=>api('/api/users/'+u.id,{method:'DELETE'}))};
+  $('#dlg').showModal()}
+async function photos(m){m.innerHTML=`<div class="bar"><input type="date" id="pf"><input type="date" id="pt"><select id="pc"><option value="">All cities</option>${allowed().map(c=>`<option>${esc(c)}</option>`).join('')}</select><input id="pm" placeholder="Rider mobile"><button id="ps">Show</button><button class="o" id="pd">Download CSV</button></div><div id="pl"></div>`;
+  const qs=()=>new URLSearchParams({from:$('#pf').value,to:$('#pt').value,city:$('#pc').value,mobile:$('#pm').value}).toString();
+  $('#pd').onclick=()=>dl('/api/export/photos.csv?'+qs(),'photos.csv');
+  $('#ps').onclick=async()=>{const r=await api('/api/photos?'+qs());$('#pl').innerHTML=`<div class="tw"><table><tr><th>Phone time</th><th>Rider</th><th>City</th><th>Hub</th><th>Shipment</th><th>Lat, Lng</th><th>Map</th><th>Photo</th></tr>${r.map(p=>`<tr><td>${new Date(p.device_time).toLocaleString()}</td><td>${esc(p.rider_name)}</td><td>${esc(p.city)}</td><td>${esc(p.hub)}</td><td>${esc(p.shipment_id)}</td><td>${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}</td><td><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${+p.lat},${+p.lng}">Map</a></td><td>${p.drive_url&&p.drive_url.startsWith('https://')?`<a target="_blank" rel="noopener" href="${esc(p.drive_url)}">Open</a>`:''}</td></tr>`).join('')||'<tr><td colspan="8">No photos match.</td></tr>'}</table></div><p>Shows the latest 500. The CSV has every match.</p>`};
+  $('#ps').click()}
+async function hubs(m){HUBS=await api('/api/hubs');m.innerHTML=`<div class="bar"><input id="hc" placeholder="City"><input id="hh" placeholder="Hub"><button id="ha">Add mapping</button></div><div class="tw"><table><tr><th>City</th><th>Hub</th><th></th></tr>${HUBS.map(x=>`<tr><td>${esc(x.city)}</td><td>${esc(x.hub)}</td><td><button class="d" data-d="${x.id}">Delete</button></td></tr>`).join('')||'<tr><td colspan="3">No mappings yet. Riders cannot register until you add one.</td></tr>'}</table></div>`;
+  $('#ha').onclick=async()=>{try{await api('/api/hubs',{method:'POST',body:{city:$('#hc').value,hub:$('#hh').value}});hubs(m)}catch(e){alert(e.message)}};
+  m.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{if(confirm('Delete this mapping?')){await api('/api/hubs/'+b.dataset.d,{method:'DELETE'});hubs(m)}})}
+start();
+</script></body></html>
