@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10202e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>ShipShot</title>
+<style>
+:root{--ink:#10202e;--bg:#eef1f3;--card:#fff;--line:#cfd7dd;--mut:#5b6b78;--acc:#c8641a;--ok:#1a7f4b;--warn:#b7791f;--bad:#b42318}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.screen{display:none;height:100%;flex-direction:column}.screen.on{display:flex}
+button,input{font:inherit}
+input{width:100%;padding:14px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,button:focus-visible{outline:3px solid var(--acc);outline-offset:1px}
+.btn{border:0;border-radius:10px;padding:14px 18px;font-weight:700;background:var(--ink);color:#fff}
+.btn.sm{padding:8px 12px;font-size:14px}.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+#login{justify-content:center;padding:28px;max-width:420px;margin:auto;gap:14px}
+#login h1{font-size:34px;margin:0;letter-spacing:-.5px}#login p{margin:0 0 6px;color:var(--mut)}
+.err{color:var(--bad);min-height:1.4em;font-size:14px}
+header{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ink);color:#fff}
+header b{flex:1;font-size:18px}
+.chips{display:flex;gap:8px;padding:8px 12px;flex-wrap:wrap}
+.chip{padding:5px 10px;border-radius:99px;font-size:13px;font-weight:600;background:#fff;border:2px solid var(--line)}
+.chip.ok{border-color:var(--ok);color:var(--ok)}.chip.warn{border-color:var(--warn);color:var(--warn)}.chip.bad{border-color:var(--bad);color:var(--bad)}
+.shipid{display:flex;gap:8px;padding:0 12px 8px}.shipid .btn{white-space:nowrap;background:var(--acc)}
+.cam{flex:1;min-height:200px;margin:0 12px;border-radius:14px;overflow:hidden;background:#000;position:relative}
+.cam video{width:100%;height:100%;object-fit:cover}
+#camerr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#fff}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+.shutter{display:flex;justify-content:center;padding:12px}
+#snap{width:76px;height:76px;border-radius:50%;border:6px solid var(--ink);background:var(--acc);padding:0}
+#snap:active{transform:scale(.94)}
+.queue{max-height:25%;overflow:auto;margin:0 12px 10px;background:var(--card);border:2px solid var(--line);border-radius:10px}
+.queue div{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:14px}
+.queue div:last-child{border:0}.queue .e{color:var(--mut)}
+#toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%}
+#toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<section id="login" class="screen">
+  <h1>ShipShot</h1>
+  <p>Sign in once. The app keeps you signed in, also without network.</p>
+  <input id="u" placeholder="User ID" autocomplete="username">
+  <input id="p" type="password" placeholder="Password" autocomplete="current-password">
+  <div class="err" id="lerr"></div>
+  <button class="btn" id="go">Sign in</button>
+</section>
+
+<section id="main" class="screen">
+  <header><b>ShipShot</b>
+    <button class="btn sm" id="inst" hidden>Add to home screen</button>
+    <button class="btn sm ghost" id="out" style="color:#fff;border-color:#4a5d6c">Sign out</button>
+  </header>
+  <div class="chips"><span class="chip" id="cNet"></span><span class="chip" id="cGps"></span><span class="chip" id="cQ"></span></div>
+  <div class="shipid"><input id="sid" placeholder="Shipment / AWB number" autocapitalize="characters" autocomplete="off"><button class="btn" id="scan">Scan</button></div>
+  <div class="cam"><video id="vid" autoplay playsinline muted></video><div id="camerr"></div><div id="flash"></div></div>
+  <div class="shutter"><button id="snap" aria-label="Take photo"></button></div>
+  <div class="queue" id="list"></div>
+</section>
+<div id="toast" role="status"></div>
+
+<script>
+/* ---- Settings ---- */
+const API_URL = '';        // Set to the real upload endpoint. Empty = simulated upload for testing.
+const MAX_SIDE = 1600;     // longest photo side in pixels
+const JPEG_Q = 0.75;       // compression quality
+
+const $ = s => document.querySelector(s);
+const fmt = d => d.toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+let toastT; const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2400); };
+
+/* ---- Offline storage (IndexedDB) ---- */
+const dbp = new Promise((res,rej)=>{const r=indexedDB.open('shipshot',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const tx = async (mode,fn)=>{const db=await dbp;return new Promise((res,rej)=>{const t=db.transaction('photos',mode);const r=fn(t.objectStore('photos'));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error)})};
+const putP = p => tx('readwrite', s=>s.put(p));
+const allP = () => tx('readonly', s=>s.getAll());
+
+/* ---- Login (demo: replace with real API call) ---- */
+const getUser = () => { try { return JSON.parse(localStorage.getItem('ss_user')); } catch { return null; } };
+$('#go').onclick = () => {
+  const u=$('#u').value.trim(), p=$('#p').value;
+  if(!u||!p){ $('#lerr').textContent='Enter your user ID and password.'; return; }
+  localStorage.setItem('ss_user', JSON.stringify({u, token:'demo-token'}));
+  show();
+};
+$('#out').onclick = () => { localStorage.removeItem('ss_user'); show(); };
+
+function show(){
+  const u=getUser();
+  $('#login').classList.toggle('on',!u); $('#main').classList.toggle('on',!!u);
+  if(u){ startCam(); startGPS(); refresh(); syncQueue(); navigator.storage?.persist?.(); }
+}
+
+/* ---- GPS ---- */
+let pos=null, gpsErr='', watching=false;
+function startGPS(){
+  if(watching) return; watching=true;
+  navigator.geolocation.watchPosition(p=>{pos=p;gpsErr='';chips()}, e=>{gpsErr=e.code===1?'Location blocked':'No GPS fix';chips()}, {enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+function chips(){
+  const n=$('#cNet'); n.textContent=navigator.onLine?'Online':'Offline'; n.className='chip '+(navigator.onLine?'ok':'warn');
+  const g=$('#cGps');
+  if(!pos){ g.textContent=gpsErr||'Finding GPS…'; g.className='chip '+(gpsErr?'bad':'warn'); }
+  else { const a=Math.round(pos.coords.accuracy); g.textContent='GPS ±'+a+' m'; g.className='chip '+(a<=30?'ok':a<=100?'warn':'bad'); }
+}
+addEventListener('online',()=>{chips();syncQueue()}); addEventListener('offline',chips);
+
+/* ---- Camera ---- */
+async function startCam(){
+  if($('#vid').srcObject) return;
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    $('#vid').srcObject=s; $('#camerr').textContent='';
+  }catch(e){ $('#camerr').textContent='Camera is blocked. Allow camera access in the browser settings, then reopen the app.'; }
+}
+
+/* ---- Barcode scan (on-device, works offline) ---- */
+let scanning=false, sidScanned=false;
+$('#sid').addEventListener('input',()=>sidScanned=false);
+$('#scan').onclick=async()=>{
+  if(!('BarcodeDetector' in window)) return toast('Scanning is not supported on this phone. Type the number instead.');
+  if(scanning){ scanning=false; return; }
+  const v=$('#vid'); if(!v.videoWidth) return toast('Camera not ready');
+  const det=new BarcodeDetector(); scanning=true; $('#scan').textContent='Stop'; toast('Point the camera at the barcode');
+  while(scanning){
+    try{ const r=await det.detect(v);
+      if(r.length){ $('#sid').value=r[0].rawValue.trim(); sidScanned=true; navigator.vibrate?.(80); toast('Scanned: '+$('#sid').value); break; } }catch{}
+    await new Promise(r=>setTimeout(r,150));
+  }
+  scanning=false; $('#scan').textContent='Scan';
+};
+
+/* ---- Capture: resize, stamp, compress, save ---- */
+$('#snap').onclick = async () => {
+  const v=$('#vid'), sid=$('#sid').value.trim();
+  if(!sid) return toast('Enter the shipment number first');
+  if(!v.videoWidth) return toast('Camera not ready');
+  if(!pos) return toast('Waiting for GPS location');
+  const now=new Date(), sc=Math.min(1, MAX_SIDE/Math.max(v.videoWidth,v.videoHeight));
+  const c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*sc); c.height=Math.round(v.videoHeight*sc);
+  const x=c.getContext('2d'); x.drawImage(v,0,0,c.width,c.height);
+  const {latitude:lat,longitude:lng,accuracy}=pos.coords;
+  const lines=[`Lat ${lat.toFixed(6)}   Lng ${lng.toFixed(6)}   (±${Math.round(accuracy)} m)`, fmt(now), `Shipment ${sid}`];
+  const fs=Math.max(14,Math.round(Math.min(c.width,c.height)/30)), lh=fs*1.35, pad=fs*.6, bh=lines.length*lh+pad*2;
+  x.fillStyle='rgba(0,0,0,.62)'; x.fillRect(0,c.height-bh,c.width,bh);
+  x.fillStyle='#fff'; x.font=`600 ${fs}px sans-serif`; x.textBaseline='top';
+  lines.forEach((l,i)=>x.fillText(l,pad,c.height-bh+pad+i*lh));
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',JPEG_Q));
+  await putP({id:crypto.randomUUID(), shipmentId:sid, scanned:sidScanned, user:getUser().u, lat, lng, accuracy,
+    deviceTime:now.toISOString(), gpsTime:new Date(pos.timestamp).toISOString(), size:blob.size, blob, status:'pending'});
+  const f=$('#flash'); f.style.opacity=.8; setTimeout(()=>f.style.opacity=0,120);
+  toast(`Saved · ${Math.round(blob.size/1024)} KB`);
+  refresh();
+  navigator.serviceWorker?.ready.then(r=>r.sync?.register('upload-photos')).catch(()=>{});
+  syncQueue();
+};
+
+/* ---- Upload + sync ---- */
+async function upload(p){
+  if(!API_URL){ await new Promise(r=>setTimeout(r,700)); return true; }   // simulated
+  const fd=new FormData(); fd.append('photo',p.blob,p.id+'.jpg');
+  ['id','shipmentId','scanned','user','lat','lng','accuracy','deviceTime','gpsTime'].forEach(k=>fd.append(k,p[k]));
+  const r=await fetch(API_URL,{method:'POST',body:fd,headers:{Authorization:'Bearer '+getUser().token}});
+  return r.ok;
+}
+let syncing=false;
+async function syncQueue(){
+  if(syncing||!navigator.onLine) return; syncing=true;
+  try{
+    for(const p of (await allP()).filter(p=>p.status==='pending')){
+      try{ if(await upload(p)) await putP({...p,blob:null,status:'synced',syncedAt:new Date().toISOString()}); else break; }
+      catch{ break; }
+      refresh();
+    }
+  } finally { syncing=false; refresh(); }
+}
+
+/* ---- Queue display ---- */
+async function refresh(){
+  chips();
+  const all=(await allP()).sort((a,b)=>b.deviceTime.localeCompare(a.deviceTime));
+  const pend=all.filter(p=>p.status==='pending').length;
+  const q=$('#cQ'); q.textContent=pend?`${pend} waiting to upload`:'All uploaded'; q.className='chip '+(pend?'warn':'ok');
+  $('#list').innerHTML = all.length ? all.slice(0,8).map(p=>`<div><span><b>${p.shipmentId.replace(/</g,'&lt;')}</b> <span class="e">${new Date(p.deviceTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></span><span style="color:var(--${p.status==='synced'?'ok':'warn'})">${p.status==='synced'?'Uploaded':'Waiting'}</span></div>`).join('') : '<div class="e">No photos yet. Enter a shipment number and tap the orange button.</div>';
+}
+
+/* ---- Install + service worker ---- */
+let dip; addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#inst').hidden=false});
+$('#inst').onclick=async()=>{dip.prompt();await dip.userChoice;dip=null;$('#inst').hidden=true};
+addEventListener('appinstalled',()=>$('#inst').hidden=true);
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js');
+  navigator.serviceWorker.addEventListener('message',e=>{ if(e.data==='sync') syncQueue(); });
+}
+show();
+</script>
+</body>
+</html>
