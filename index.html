@@ -31,7 +31,9 @@ header b{flex:1;font-size:18px}
 .cam video{width:100%;height:100%;object-fit:cover}
 #camerr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#fff}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
-.shutter{display:flex;justify-content:center;padding:12px}
+.shutter{display:flex;justify-content:center;align-items:center;gap:16px;padding:12px}#share{background:#1a7f4b}
+.hud{position:absolute;left:0;right:0;top:10px;text-align:center;pointer-events:none}.hud span{display:inline-block;background:rgba(0,0,0,.65);color:#fff;padding:6px 12px;border-radius:99px;font-size:14px;max-width:92%}
+.guide{position:absolute;inset:28% 8%;border:3px dashed rgba(255,255,255,.75);border-radius:12px;pointer-events:none}
 #snap{width:76px;height:76px;border-radius:50%;border:6px solid var(--ink);background:var(--acc);padding:0}
 #snap:active{transform:scale(.94)}
 .queue{max-height:25%;overflow:auto;margin:0 12px 10px;background:var(--card);border:2px solid var(--line);border-radius:10px}
@@ -74,8 +76,8 @@ header b{flex:1;font-size:18px}
   </header>
   <div class="chips"><span class="chip" id="cNet"></span><span class="chip" id="cGps"></span><span class="chip" id="cQ"></span></div>
   <div class="shipid"><input id="sid" placeholder="Shipment / AWB number" autocapitalize="characters" autocomplete="off"><button class="btn" id="scan">Scan</button></div>
-  <div class="cam"><video id="vid" autoplay playsinline muted></video><div id="camerr"></div><div id="flash"></div></div>
-  <div class="shutter"><button id="snap" aria-label="Take photo"></button></div>
+  <div class="cam"><video id="vid" autoplay playsinline muted></video><div id="guide" class="guide" hidden></div><div class="hud"><span id="hud">Starting camera…</span></div><div id="camerr"></div><div id="flash"></div></div>
+  <div class="shutter"><button id="snap" aria-label="Take photo"></button><button class="btn" id="share" hidden>Share on WhatsApp</button></div>
   <div class="queue" id="list"></div>
 </section>
 <div id="toast" role="status"></div>
@@ -148,24 +150,42 @@ async function startCam(){
   if($('#vid').srcObject) return;
   try{
     const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
-    $('#vid').srcObject=s; $('#camerr').textContent='';
+    $('#vid').srcObject=s; $('#camerr').textContent=''; autoScan();
   }catch(e){ $('#camerr').textContent='Camera is blocked. Allow camera access in the browser settings, then reopen the app.'; }
 }
 
-/* ---- Barcode scan (on-device, works offline) ---- */
-let scanning=false, sidScanned=false;
+/* ---- Barcode scan (on-device, works offline). Starts by itself when the camera opens. ---- */
+let scanning=false, sidScanned=false, detector=null, scanRun=0, lastShot=null;
+const hud=t=>{ $('#hud').textContent=t; };
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 $('#sid').addEventListener('input',()=>sidScanned=false);
-$('#scan').onclick=async()=>{
-  if(!('BarcodeDetector' in window)) return toast('Scanning is not supported on this phone. Type the number instead.');
-  if(scanning){ scanning=false; return; }
-  const v=$('#vid'); if(!v.videoWidth) return toast('Camera not ready');
-  const det=new BarcodeDetector(); scanning=true; $('#scan').textContent='Stop'; toast('Point the camera at the barcode');
-  while(scanning){
-    try{ const r=await det.detect(v);
-      if(r.length){ $('#sid').value=r[0].rawValue.trim(); sidScanned=true; navigator.vibrate?.(80); toast('Scanned: '+$('#sid').value); break; } }catch{}
-    await new Promise(r=>setTimeout(r,150));
+async function autoScan(){
+  if(!('BarcodeDetector' in window)){ hud('Barcode scanning is not supported on this phone. Type the number.'); $('#scan').hidden=true; return; }
+  const v=$('#vid'); for(let i=0;i<150&&!v.videoWidth;i++) await sleep(200);
+  if(!v.videoWidth) return;
+  detector=detector||new BarcodeDetector();
+  const id=++scanRun; scanning=true; $('#scan').textContent='Stop'; $('#guide').hidden=false; hud('Point the camera at the barcode');
+  while(scanning&&id===scanRun){
+    try{ const r=await detector.detect(v);
+      if(r.length){ $('#sid').value=r[0].rawValue.trim(); sidScanned=true; navigator.vibrate?.(80); hud('✓ '+$('#sid').value+'  Now take the photo'); break; } }catch{}
+    await sleep(200);
   }
-  scanning=false; $('#scan').textContent='Scan';
+  if(id===scanRun){ scanning=false; $('#scan').textContent='Rescan'; $('#guide').hidden=true; }
+}
+$('#scan').onclick=()=>{
+  if(scanning){ scanRun++; scanning=false; $('#scan').textContent='Rescan'; $('#guide').hidden=true; hud('Scan stopped. Type the number or tap Rescan.'); }
+  else { $('#sid').value=''; sidScanned=false; autoScan(); }
+};
+
+/* ---- Share the last photo (opens the phone's share sheet; choose WhatsApp) ---- */
+$('#share').onclick=async()=>{
+  if(!lastShot) return;
+  const name=lastShot.sid.replace(/[\\/:*?"<>|]/g,'_')+'.jpg', file=new File([lastShot.blob],name,{type:'image/jpeg'});
+  const text=`Shipment ${lastShot.sid}\n${lastShot.when}\nhttps://www.google.com/maps?q=${lastShot.lat},${lastShot.lng}`;
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],text});
+    else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); toast('This phone cannot share the photo itself; sent the details only.'); }
+  }catch(e){ if(e.name!=='AbortError') toast('Could not open sharing.'); }
 };
 
 /* ---- Capture: resize, stamp, compress, save ---- */
@@ -186,6 +206,7 @@ $('#snap').onclick = async () => {
   const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',JPEG_Q));
   await putP({id:crypto.randomUUID(), shipmentId:sid, scanned:sidScanned, user:getUser().u, lat, lng, accuracy,
     deviceTime:now.toISOString(), gpsTime:new Date(pos.timestamp).toISOString(), size:blob.size, blob, status:'pending'});
+  lastShot={blob,sid,lat,lng,when:fmt(now)}; $('#share').hidden=false;
   const f=$('#flash'); f.style.opacity=.8; setTimeout(()=>f.style.opacity=0,120);
   toast(`Saved · ${Math.round(blob.size/1024)} KB`);
   refresh();
