@@ -51,7 +51,8 @@ function photoFilter(f, me) {
 /* ---------- app ---------- */
 const app = express();
 app.use(express.json({ limit: '8mb' }));
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));   // so /admin also opens admin.html
+app.use((req, res, next) => /^\/(server\.js|package\.json|.*\.zip)$/.test(req.path) ? res.status(404).end() : next());
+app.use(express.static(__dirname, { extensions: ['html'] }));   // so /admin also opens admin.html
 
 app.get('/api/hubs', h(async (_, res) => res.json((await q('SELECT * FROM hubs ORDER BY city, hub')).rows)));
 
