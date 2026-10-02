@@ -1,81 +1,1540 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ShipShot Admin</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LastMile Ready — Admin</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiM3YTNmYjAiLz48cGF0aCBkPSJNMTggMzMgTDI4IDQzIEw0NyAyMSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPgo=">
 <style>
-:root{--ink:#10202e;--bg:#eef1f3;--line:#cfd7dd;--mut:#5b6b78;--acc:#c8641a;--ok:#1a7f4b;--bad:#b42318}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
-header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center}header b{font-size:18px;margin-right:auto}
-nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px}main{padding:0 16px 24px}
-button{font:inherit;border:0;border-radius:8px;padding:8px 14px;font-weight:600;background:var(--ink);color:#fff;cursor:pointer}
-button.o{background:#fff;color:var(--ink);border:2px solid var(--line)}button.on{background:var(--acc)}button.d{background:var(--bad)}button.g{background:var(--ok)}
-input,select{padding:8px;border:2px solid var(--line);border-radius:8px;font:inherit;max-width:100%}
-.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
-.tw{overflow-x:auto;background:#fff;border:2px solid var(--line);border-radius:10px}
-table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--mut)}
-tr.c{cursor:pointer}tr.c:hover{background:#f4f6f8}
-dialog{border:0;border-radius:12px;padding:18px;width:min(420px,94vw)}dialog label{display:block;margin:8px 0 2px;color:var(--mut);font-size:13px}dialog input,dialog select{width:100%}
-.err{color:#b42318;min-height:1.3em}#login{max-width:340px;margin:12vh auto;display:grid;gap:10px;padding:0 16px}
-.s-pending{color:#b7791f}.s-approved{color:var(--ok)}.s-rejected{color:var(--bad)}
-</style></head><body>
-<div id="login"><h2>ShipShot admin</h2><input id="m" placeholder="Mobile number" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div class="err" id="lerr"></div><button id="go">Sign in</button></div>
-<div id="app" hidden><header><b>ShipShot admin</b><span id="who"></span><button class="o" id="out">Sign out</button></header><nav id="nav"></nav><main id="main"></main></div>
-<dialog id="dlg"></dialog>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --text:#1a1d23; --muted:#6b7280; --border:#e3e5e9;
+  --accent:#7a3fb0; --accent-2:#f1e8fa; --danger:#c0392b; --ok:#1f8a4c; --warn:#a86a00; --warn-bg:#fff3d9;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14161a; --card:#1c1f26; --text:#eef0f3; --muted:#9aa1ac; --border:#2b2f38; --accent:#b493e0; --accent-2:#2a2036; --warn-bg:#332a10;
+  }
+}
+:root[data-theme="dark"]{ --bg:#14161a; --card:#1c1f26; --text:#eef0f3; --muted:#9aa1ac; --border:#2b2f38; --accent:#b493e0; --accent-2:#2a2036; --warn-bg:#332a10; }
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+header{position:sticky;top:0;padding:14px 18px;padding-top:calc(14px + env(safe-area-inset-top,0px));background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;z-index:10;}
+h1{font-size:17px;margin:0;}
+.sub{color:var(--muted);font-size:12px;}
+main{max-width:900px;margin:0 auto;padding:18px;}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;}
+.btn:hover{border-color:var(--accent);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-danger{color:var(--danger);border-color:var(--danger);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px;}
+.content-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;overflow-x:auto;}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--accent-2);color:var(--accent);margin-bottom:6px;}
+.row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;}
+.field{display:block;width:100%;padding:8px;margin:6px 0;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;}
+label{font-size:12px;color:var(--muted);}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.section-title{font-size:15px;font-weight:600;margin:20px 0 4px;}
+.empty{color:var(--muted);font-size:13px;padding:16px;text-align:center;border:1px dashed var(--border);border-radius:10px;}
+.pill{font-size:11px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--muted);}
+.msg{font-size:13px;padding:10px;border-radius:8px;background:var(--accent-2);color:var(--accent);margin:10px 0;}
+.msg-ok{background:#e6f6ec;color:var(--ok);}
+.msg-warn{background:var(--warn-bg);color:var(--warn);}
+.msg-danger{background:#fbe7e4;color:var(--danger);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th,td{border-bottom:1px solid var(--border);padding:6px;text-align:left;}
+.hidden{display:none;}
+.card-narrow{max-width:420px;margin:30px auto;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#1a1d23;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:100;max-width:90%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:pre-line;display:none;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🛠 LastMile Ready — Admin</h1>
+    <div class="sub" id="crumbSub">Loading…</div>
+  </div>
+  <div class="top-actions">
+    <button class="btn hidden" id="exportCsvBtn">⬇ Export CSV</button>
+    <button class="btn hidden" id="logoutBtn">🔓 Log out</button>
+  </div>
+</header>
+<main id="app"></main>
+
 <script>
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let T=localStorage.getItem('ss_admin'),ME,HUBS=[],tab='req',LIST=[];
-const RL={super_admin:'Super admin',admin:'Admin',semi_admin:'Semi admin',viewer:'Viewer',rider:'Rider'};
-const canWrite=()=>['super_admin','admin','semi_admin'].includes(ME.role),canDel=()=>['super_admin','admin'].includes(ME.role);
-const allowed=()=>{const a=[...new Set(HUBS.map(x=>x.city))];return ME.role==='super_admin'||ME.scope_all?a:a.filter(c=>(ME.cities||[]).includes(c))};
-async function api(url,o={}){const r=await fetch(url,{method:o.method||'GET',headers:{'Content-Type':'application/json',Authorization:'Bearer '+T},body:o.body?JSON.stringify(o.body):undefined});
-  if(r.status===401){logout();throw new Error('Please sign in.')}
-  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Error');return j}
-async function dl(url,name){const r=await fetch(url,{headers:{Authorization:'Bearer '+T}});if(!r.ok)return alert('Download failed');const a=document.createElement('a');a.href=URL.createObjectURL(await r.blob());a.download=name;a.click()}
-function logout(){localStorage.removeItem('ss_admin');T=null;$('#app').hidden=true;$('#login').hidden=false}
-$('#out').onclick=logout;
-$('#go').onclick=async()=>{try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mobile:$('#m').value,password:$('#pw').value})});const j=await r.json();
-  if(!r.ok)throw new Error(j.error);if(j.user.role==='rider')throw new Error('This portal is for admins only.');T=j.token;localStorage.setItem('ss_admin',T);start()}catch(e){$('#lerr').textContent=e.message}};
-async function start(){if(!T)return;try{ME=(await api('/api/me')).user;HUBS=await api('/api/hubs')}catch{return}
-  $('#login').hidden=true;$('#app').hidden=false;$('#who').textContent=ME.name+' ('+RL[ME.role]+(ME.role==='super_admin'?'':' · '+(ME.scope_all?'all cities':(ME.cities||[]).join(', ')||'no cities'))+')';go()}
-function go(){const t=[['req','Requests'],['riders','Riders'],['photos','Photos']];if(ME.role==='super_admin')t.push(['staff','Staff'],['hubs','City / hub']);
-  $('#nav').innerHTML=t.map(([k,l])=>`<button class="${k===tab?'on':'o'}" data-t="${k}">${l}</button>`).join('');
-  $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;go()});
-  const m=$('#main');({req,riders,photos,staff,hubs})[tab](m).catch(e=>m.textContent=e.message)}
-function table(rows){return `<div class="tw"><table><tr><th>Name</th><th>Mobile</th><th>City</th><th>Hub</th><th>Status</th><th>Requested</th></tr>${rows.map((u,i)=>`<tr class="c" data-i="${i}"><td>${esc(u.name)}</td><td>${esc(u.mobile)}</td><td>${esc(u.city)}</td><td>${esc(u.hub)}</td><td class="s-${esc(u.status)}">${esc(u.status)}</td><td>${new Date(u.created_at).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="6">Nothing here.</td></tr>'}</table></div>`}
-async function list(m,qs,extra=''){LIST=await api('/api/users?'+qs);m.innerHTML=extra+table(LIST);m.querySelectorAll('tr.c').forEach(r=>r.onclick=()=>edit(LIST[r.dataset.i]))}
-async function req(m){await list(m,'role=rider&status=pending')}
-async function riders(m){await list(m,'role=rider','<div class="bar"><button class="o" id="dlr">Download riders CSV</button></div>');$('#dlr').onclick=()=>dl('/api/export/riders.csv','riders.csv')}
-async function staff(m){LIST=await api('/api/users?role=staff');m.innerHTML='<div class="bar"><button id="add">Add staff</button></div><div class="tw"><table><tr><th>Name</th><th>Mobile</th><th>Role</th><th>Cities</th><th>Status</th></tr>'+(LIST.map((u,i)=>`<tr class="c" data-i="${i}"><td>${esc(u.name)}</td><td>${esc(u.mobile)}</td><td>${RL[u.role]}</td><td>${u.scope_all?'All cities':esc((u.cities||[]).join(', '))||'None'}</td><td class="s-${esc(u.status)}">${esc(u.status)}</td></tr>`).join('')||'<tr><td colspan="5">No staff yet.</td></tr>')+'</table></div>';
-  m.querySelectorAll('tr.c').forEach(r=>r.onclick=()=>edit(LIST[r.dataset.i]));$('#add').onclick=()=>edit(null)}
-function edit(u){const isNew=!u,su=ME.role==='super_admin',W=canWrite(),role0=u?u.role:'admin',cities=allowed();if(u&&u.city&&!cities.includes(u.city))cities.push(u.city);
-  const opt=(a,sel)=>a.map(x=>`<option ${x===sel?'selected':''}>${esc(x)}</option>`).join(''),allC=[...new Set(HUBS.map(x=>x.city))];
-  const roleOpts=['rider','admin','semi_admin','viewer'].filter(r=>!isNew||r!=='rider').map(r=>`<option value="${r}" ${r===role0?'selected':''}>${RL[r]}</option>`).join('');
-  $('#dlg').innerHTML=`<h3>${isNew?'New staff':esc(u.name)}</h3><label>Name</label><input id="f_name" value="${esc(u?.name)}"><label>Mobile</label><input id="f_mobile" value="${esc(u?.mobile)}"><label>Email</label><input id="f_email" value="${esc(u?.email)}">
-  ${su?`<label>Role</label><select id="f_role">${roleOpts}</select>`:''}
-  <div id="sr"><label>City</label><select id="f_city">${opt(cities,u?.city)}</select><label>Hub</label><select id="f_hub"></select><label>Status</label><select id="f_status">${opt(['pending','approved','rejected'],u?.status)}</select></div>
-  <div id="ss"><label>City access</label><label><input type="checkbox" id="f_all" ${u?.scope_all?'checked':''} style="width:auto"> All cities</label><div id="cb">${allC.map(c=>`<label><input type="checkbox" class="cc" value="${esc(c)}" ${(u?.cities||[]).includes(c)?'checked':''} style="width:auto"> ${esc(c)}</label>`).join('')||'Add cities under City / hub first.'}</div></div>
-  <label>${isNew?'Password':'New password (leave empty to keep)'}</label><input id="f_password" type="password"><div class="err" id="ferr"></div>
-  <div class="bar" style="margin-top:10px">${W?'<button id="sv">Save</button>':''}${W&&u&&u.role==='rider'&&u.status!=='approved'?'<button class="g" id="ap">Approve</button>':''}${u&&canDel()?'<button class="d" id="rm">Delete</button>':''}<button class="o" id="cl">Close</button></div>`;
-  const curRole=()=>su?$('#f_role').value:role0;
-  const sync=()=>{const r=curRole()==='rider';$('#sr').hidden=!r;$('#ss').hidden=r;$('#cb').hidden=$('#f_all').checked};
-  const hubSel=()=>{const c=$('#f_city').value,hs=HUBS.filter(x=>x.city===c).map(x=>x.hub);if(u&&u.hub&&u.city===c&&!hs.includes(u.hub))hs.push(u.hub);$('#f_hub').innerHTML=opt(hs,u&&u.hub)};
-  $('#f_city').onchange=hubSel;hubSel();$('#f_all').onchange=sync;if(su)$('#f_role').onchange=sync;sync();
-  if(!W)$('#dlg').querySelectorAll('input,select').forEach(e=>e.disabled=true);
-  const run=async f=>{try{await f();$('#dlg').close();go()}catch(e){$('#ferr').textContent=e.message}};
-  $('#cl').onclick=()=>$('#dlg').close();
-  if($('#sv'))$('#sv').onclick=()=>run(()=>{const r=curRole(),b={name:$('#f_name').value,mobile:$('#f_mobile').value,email:$('#f_email').value};
-    if($('#f_password').value)b.password=$('#f_password').value;if(su)b.role=r;
-    if(r==='rider'){b.city=$('#f_city').value;b.hub=$('#f_hub').value;b.status=$('#f_status').value}
-    else{b.scope_all=$('#f_all').checked;b.cities=[...document.querySelectorAll('.cc:checked')].map(x=>x.value)}
-    return isNew?api('/api/staff',{method:'POST',body:b}):api('/api/users/'+u.id,{method:'PATCH',body:b})});
-  if($('#ap'))$('#ap').onclick=()=>run(()=>api('/api/users/'+u.id,{method:'PATCH',body:{status:'approved'}}));
-  if($('#rm'))$('#rm').onclick=()=>{if(confirm('Delete '+u.name+'? Their past photo records stay in the data.'))run(()=>api('/api/users/'+u.id,{method:'DELETE'}))};
-  $('#dlg').showModal()}
-async function photos(m){m.innerHTML=`<div class="bar"><input type="date" id="pf"><input type="date" id="pt"><select id="pc"><option value="">All cities</option>${allowed().map(c=>`<option>${esc(c)}</option>`).join('')}</select><input id="pm" placeholder="Rider mobile"><button id="ps">Show</button><button class="o" id="pd">Download CSV</button></div><div id="pl"></div>`;
-  const qs=()=>new URLSearchParams({from:$('#pf').value,to:$('#pt').value,city:$('#pc').value,mobile:$('#pm').value}).toString();
-  $('#pd').onclick=()=>dl('/api/export/photos.csv?'+qs(),'photos.csv');
-  $('#ps').onclick=async()=>{const r=await api('/api/photos?'+qs());$('#pl').innerHTML=`<div class="tw"><table><tr><th>Phone time</th><th>Rider</th><th>City</th><th>Hub</th><th>Shipment</th><th>Lat, Lng</th><th>Map</th><th>Photo</th></tr>${r.map(p=>`<tr><td>${new Date(p.device_time).toLocaleString()}</td><td>${esc(p.rider_name)}</td><td>${esc(p.city)}</td><td>${esc(p.hub)}</td><td>${esc(p.shipment_id)}</td><td>${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}</td><td><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${+p.lat},${+p.lng}">Map</a></td><td>${p.drive_url&&p.drive_url.startsWith('https://')?`<a target="_blank" rel="noopener" href="${esc(p.drive_url)}">Open</a>`:''}</td></tr>`).join('')||'<tr><td colspan="8">No photos match.</td></tr>'}</table></div><p>Shows the latest 500. The CSV has every match.</p>`};
-  $('#ps').click()}
-async function hubs(m){HUBS=await api('/api/hubs');m.innerHTML=`<div class="bar"><input id="hc" placeholder="City"><input id="hh" placeholder="Hub"><button id="ha">Add mapping</button></div><div class="tw"><table><tr><th>City</th><th>Hub</th><th></th></tr>${HUBS.map(x=>`<tr><td>${esc(x.city)}</td><td>${esc(x.hub)}</td><td><button class="d" data-d="${x.id}">Delete</button></td></tr>`).join('')||'<tr><td colspan="3">No mappings yet. Riders cannot register until you add one.</td></tr>'}</table></div>`;
-  $('#ha').onclick=async()=>{try{await api('/api/hubs',{method:'POST',body:{city:$('#hc').value,hub:$('#hh').value}});hubs(m)}catch(e){alert(e.message)}};
-  m.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{if(confirm('Delete this mapping?')){await api('/api/hubs/'+b.dataset.d,{method:'DELETE'});hubs(m)}})}
-start();
-</script></body></html>
+const API = ""; // same origin
+const PERSONAS = ["Scanner","Team Leader","Hub Manager and above","City Lead","Regional Manager"];
+// Keep in sync with MAX_UPLOAD_MB in server.js — only used here for the
+// helper text/warnings on the upload form, the server enforces the real limit.
+const MAX_UPLOAD_MB = 400;
+// MM:SS <-> minutes helpers for the "required watch time" field. Storage
+// stays as decimal minutes (content.required_minutes) — only the admin
+// input/display is MM:SS.
+function mmssToSeconds(str){
+  const m = /^(\d{1,2}):([0-5]\d)$/.exec(String(str||"").trim());
+  if(!m) return null;
+  return parseInt(m[1],10)*60 + parseInt(m[2],10);
+}
+function minutesToMmss(mins){
+  const totalSecs = Math.round(Number(mins||0)*60);
+  const mm = Math.floor(totalSecs/60), ss = totalSecs%60;
+  return String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0");
+}
+// Accepts a full YouTube URL (watch/youtu.be/embed/shorts) or a bare video ID.
+function extractYoutubeId(url){
+  url = String(url||"").trim();
+  let m = /[?&]v=([a-zA-Z0-9_-]{6,})/.exec(url); if(m) return m[1];
+  m = /youtu\.be\/([a-zA-Z0-9_-]{6,})/.exec(url); if(m) return m[1];
+  m = /youtube\.com\/(?:embed|shorts)\/([a-zA-Z0-9_-]{6,})/.exec(url); if(m) return m[1];
+  if(/^[a-zA-Z0-9_-]{6,}$/.test(url)) return url;
+  return null;
+}
+const slug = p => p.replace(/[^a-zA-Z0-9]/g,"_");
+const app = document.getElementById("app");
+const crumbSub = document.getElementById("crumbSub");
+const logoutBtn = document.getElementById("logoutBtn");
+const exportCsvBtn = document.getElementById("exportCsvBtn");
+
+let adminSession = null; // {token, username}
+try{ const saved = sessionStorage.getItem("adminSession"); if(saved) adminSession = JSON.parse(saved); }catch(e){}
+let state = { view:"loading", persona:PERSONAS[0] };
+
+function showToast(msg, ms){
+  let t = document.getElementById("toastEl");
+  if(!t){ t=document.createElement("div"); t.id="toastEl"; t.className="toast"; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.style.display="none"; }, ms||4500);
+}
+
+// ---- Ported from index.html: dynamic custom-field rendering + the
+// "search by name" tagging typeahead, both needed by the new "Add User
+// Directly" form in the Access tab below. ----
+let formFieldsCache = null;
+async function loadFormFields(){
+  if(!formFieldsCache){ try{ formFieldsCache = await api("/api/form-fields"); }catch(e){ formFieldsCache = []; } }
+  return formFieldsCache;
+}
+async function renderCustomFieldsInto(containerId, existingValues){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const fields = await loadFormFields();
+  const vals = existingValues || {};
+  container.innerHTML = fields.map(f=>{
+    const val = vals[f.fieldKey] || "";
+    const reqStar = f.required ? " *" : "";
+    if(f.type==="dropdown"){
+      return `<label>${escapeHtml(f.label)}${reqStar}</label><select class="field" data-custom-field="${escapeAttr(f.fieldKey)}">
+        <option value=""></option>
+        ${f.options.map(o=>`<option value="${escapeAttr(o)}" ${o===val?"selected":""}>${escapeHtml(o)}</option>`).join("")}
+      </select>`;
+    }
+    const inputType = f.type==="number" ? "number" : f.type==="date" ? "date" : "text";
+    return `<label>${escapeHtml(f.label)}${reqStar}</label><input class="field" type="${inputType}" data-custom-field="${escapeAttr(f.fieldKey)}" value="${escapeAttr(val)}">`;
+  }).join("");
+}
+function collectCustomFieldValues(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return {};
+  const out = {};
+  container.querySelectorAll("[data-custom-field]").forEach(el=>{ out[el.dataset.customField] = el.value.trim(); });
+  return out;
+}
+function validateRequiredCustomFields(containerId, msgEl){
+  const container = document.getElementById(containerId);
+  if(!container) return true;
+  let ok = true;
+  container.querySelectorAll("[data-custom-field]").forEach(el=>{
+    const label = el.previousElementSibling ? el.previousElementSibling.textContent : el.dataset.customField;
+    if(label.trim().endsWith("*") && !el.value.trim()) ok = false;
+  });
+  if(!ok) msgEl.innerHTML = `<div class="msg msg-danger">Please fill in all required fields.</div>`;
+  return ok;
+}
+function wireUserTypeahead({inputEl, hiddenIdEl, listEl, fetchCandidates}){
+  let debounceTimer;
+  inputEl.addEventListener("input", ()=>{
+    hiddenIdEl.value = "";
+    clearTimeout(debounceTimer);
+    const q = inputEl.value.trim();
+    debounceTimer = setTimeout(async ()=>{
+      if(q.length<1){ listEl.innerHTML=""; listEl.classList.add("hidden"); return; }
+      const candidates = await fetchCandidates(q);
+      if(candidates.length===0){ listEl.innerHTML = `<div style="padding:6px;color:var(--muted);font-size:12px">No matching names.</div>`; listEl.classList.remove("hidden"); return; }
+      listEl.innerHTML = candidates.map(c=>`<div class="typeahead-row" data-id="${escapeAttr(c.id)}" style="padding:6px;cursor:pointer;border-bottom:1px solid var(--border)"><b>${escapeHtml(c.name)}</b> <span style="color:var(--muted);font-size:12px">${escapeHtml(c.primaryRole||c.primary_role||"")} · ${escapeHtml(c.hub||"")}</span></div>`).join("");
+      listEl.classList.remove("hidden");
+      listEl.querySelectorAll("[data-id]").forEach(row=>{
+        row.onclick = ()=>{
+          hiddenIdEl.value = row.dataset.id;
+          inputEl.value = row.querySelector("b").textContent;
+          listEl.innerHTML=""; listEl.classList.add("hidden");
+        };
+      });
+    }, 200);
+  });
+  inputEl.addEventListener("blur", ()=> setTimeout(()=>listEl.classList.add("hidden"), 150));
+}
+
+function armConfirm(btn, onConfirm){
+  if(btn.dataset.armed==="1"){
+    btn.dataset.armed="0";
+    onConfirm();
+  } else {
+    const original = btn.textContent;
+    btn.dataset.armed="1";
+    btn.textContent = "Tap again to confirm";
+    setTimeout(()=>{ if(btn.dataset.armed==="1"){ btn.dataset.armed="0"; btn.textContent=original; } }, 4000);
+  }
+}
+
+// Generic API helper. Adds the admin bearer token once logged in; a 401
+// means the session expired, so it drops back to the login screen.
+async function api(path, opts){
+  opts = opts || {};
+  const headers = Object.assign({"Content-Type":"application/json"}, opts.headers||{});
+  if(adminSession && adminSession.token) headers["Authorization"] = "Bearer "+adminSession.token;
+  const res = await fetch(API+path, Object.assign({}, opts, {headers}));
+  if(res.status===401 && state.view==="admin"){
+    adminSession=null; sessionStorage.removeItem("adminSession");
+    state={view:"login"}; render();
+    throw new Error("session_expired");
+  }
+  let data=null;
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok){ const err=new Error((data&&data.error)||"request_failed"); err.status=res.status; err.data=data; throw err; }
+  return data;
+}
+async function apiUpload(path, formData){
+  const headers = {};
+  if(adminSession && adminSession.token) headers["Authorization"] = "Bearer "+adminSession.token;
+  const res = await fetch(API+path, {method:"POST", headers, body: formData});
+  let data=null;
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok){ const err=new Error((data&&data.error)||"upload_failed"); err.status=res.status; err.data=data; throw err; }
+  return data;
+}
+
+async function init(){
+  logoutBtn.onclick = ()=>{ adminSession=null; sessionStorage.removeItem("adminSession"); goHome(); };
+  exportCsvBtn.onclick = async ()=>{
+    try{
+      const res = await fetch(API+"/api/admin/export-csv", { headers: { "Authorization": "Bearer "+adminSession.token } });
+      if(!res.ok) throw new Error("failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "lastmile_ready_users.csv";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }catch(e){ showToast("CSV export failed."); }
+  };
+  goHome();
+}
+
+async function goHome(){
+  if(!adminSession){
+    state = {view:"checkingSetup"};
+    render();
+    try{
+      const j = await api("/api/admin/has-admin");
+      state = { view: j.hasAdmin ? "login" : "setup" };
+    }catch(e){ state = {view:"login"}; }
+    return render();
+  }
+  logoutBtn.classList.remove("hidden");
+  exportCsvBtn.classList.remove("hidden");
+  state = { view:"admin", persona: state.persona || PERSONAS[0] };
+  render();
+}
+
+function render(){
+  logoutBtn.classList.toggle("hidden", !adminSession);
+  exportCsvBtn.classList.toggle("hidden", !adminSession);
+  if(state.view==="loading" || state.view==="checkingSetup"){ crumbSub.textContent="Loading…"; app.innerHTML="Loading…"; return; }
+  if(state.view==="setup") return renderSetup();
+  if(state.view==="login") return renderAdminLogin();
+  if(state.view==="adminChangePassword") return renderAdminChangePassword();
+  if(state.view==="admin") return renderAdmin();
+}
+
+// ---------------- ADMIN LOGIN ----------------
+function renderSetup(){
+  crumbSub.textContent = "First-time admin setup";
+  app.innerHTML = `<div class="card-narrow">
+    <div class="section-title" style="margin-top:0">Create the first admin account</div>
+    <p style="font-size:12px;color:var(--muted)">No admin account exists yet for this dashboard. Create one now — you can add more admins later from inside the panel.</p>
+    <label>Admin username</label><input class="field" id="sUser" autocomplete="username">
+    <label>Password</label><input class="field" id="sPass" type="password" autocomplete="new-password">
+    <label>Confirm password</label><input class="field" id="sPass2" type="password" autocomplete="new-password">
+    <button class="btn btn-primary" id="sSubmit" style="width:100%;margin-top:8px">Create admin account & log in</button>
+    <div id="sMsg"></div>
+  </div>`;
+  document.getElementById("sSubmit").onclick = async ()=>{
+    const uname = document.getElementById("sUser").value.trim().toLowerCase();
+    const pass = document.getElementById("sPass").value;
+    const pass2 = document.getElementById("sPass2").value;
+    const msg = document.getElementById("sMsg");
+    if(!uname || pass.length<6){ msg.innerHTML=`<div class="msg msg-danger">Username required; password must be at least 6 characters.</div>`; return; }
+    if(pass!==pass2){ msg.innerHTML=`<div class="msg msg-danger">Passwords don't match.</div>`; return; }
+    try{
+      const result = await api("/api/admin/setup", {method:"POST", body: JSON.stringify({username:uname, password:pass})});
+      adminSession = {token: result.token, username: result.username};
+      sessionStorage.setItem("adminSession", JSON.stringify(adminSession));
+      goHome();
+    }catch(e){ msg.innerHTML=`<div class="msg msg-danger">Could not create admin account. Please try again.</div>`; }
+  };
+}
+
+function renderAdminLogin(){
+  crumbSub.textContent = "Admin login";
+  app.innerHTML = `<div class="card-narrow">
+    <div class="section-title" style="margin-top:0">🔑 Admin login</div>
+    <label>Username</label><input class="field" id="aUser" autocomplete="username">
+    <label>Password</label><input class="field" id="aPass" type="password" autocomplete="current-password">
+    <button class="btn btn-primary" id="aSubmit" style="width:100%;margin-top:8px">Log in</button>
+    <div id="aMsg"></div>
+  </div>`;
+  document.getElementById("aSubmit").onclick = async ()=>{
+    const uname = document.getElementById("aUser").value.trim().toLowerCase();
+    const pass = document.getElementById("aPass").value;
+    const msg = document.getElementById("aMsg");
+    if(!uname || !pass){ msg.innerHTML=`<div class="msg msg-danger">Enter your username and password.</div>`; return; }
+    try{
+      const result = await api("/api/admin/login", {method:"POST", body: JSON.stringify({username:uname, password:pass})});
+      adminSession = {token: result.token, username: result.username, tier: result.tier};
+      sessionStorage.setItem("adminSession", JSON.stringify(adminSession));
+      if(result.mustChangePassword){ state = {view:"adminChangePassword"}; render(); return; }
+      goHome();
+    }catch(e){ msg.innerHTML=`<div class="msg msg-danger">Incorrect username or password.</div>`; }
+  };
+}
+
+// Forced first-login change for the seeded Superadmin/1111 bootstrap
+// account — also collects their real name at the same time.
+function renderAdminChangePassword(){
+  crumbSub.textContent = "Set your password";
+  app.innerHTML = `<div class="card-narrow">
+    <div class="section-title" style="margin-top:0">🔒 Welcome, Super Admin</div>
+    <p style="font-size:12px;color:var(--muted)">This is the first login on the bootstrap account. Set your real name and a new password before continuing.</p>
+    <label>Your Name</label><input class="field" id="apName">
+    <label>New Password (min 6 characters)</label><input class="field" id="apPass1" type="password">
+    <label>Confirm Password</label><input class="field" id="apPass2" type="password">
+    <button class="btn btn-primary" id="apSubmit" style="width:100%;margin-top:8px">Save & Continue</button>
+    <div id="apMsg"></div>
+  </div>`;
+  document.getElementById("apSubmit").onclick = async ()=>{
+    const name = document.getElementById("apName").value.trim();
+    const p1 = document.getElementById("apPass1").value;
+    const p2 = document.getElementById("apPass2").value;
+    const msg = document.getElementById("apMsg");
+    if(p1.length<6){ msg.innerHTML=`<div class="msg msg-danger">Password must be at least 6 characters.</div>`; return; }
+    if(p1!==p2){ msg.innerHTML=`<div class="msg msg-danger">Passwords don't match.</div>`; return; }
+    try{
+      await api("/api/admin/change-password", {method:"POST", body: JSON.stringify({newPassword:p1, name})});
+      showToast("Password updated.");
+      goHome();
+    }catch(e){ msg.innerHTML=`<div class="msg msg-danger">Could not save. Please try again.</div>`; }
+  };
+}
+
+// ---------------- ADMIN PANEL: 5 tabs ----------------
+async function renderAdmin(){
+  crumbSub.textContent = "Logged in as "+(adminSession.username||"admin");
+  if(!PERSONAS.includes(state.persona)) state.persona = PERSONAS[0];
+  if(!state.adminTab) state.adminTab = "training";
+
+  app.innerHTML = `<div class="grid" id="mainTabs" style="margin-bottom:14px"></div><div id="mainTabBody"></div>`;
+  const tabs = [
+    ["training","🎓 Add Training Content"],
+    ["assign","📌 Assign Task"],
+    ["tagging","🏷️ Tagging"],
+    ["registration","📝 Registration"],
+    ["access","🔐 Access"]
+  ];
+  const tabsEl = document.getElementById("mainTabs");
+  tabs.forEach(([key,label])=>{
+    const b = document.createElement("button");
+    b.className = "btn"+(state.adminTab===key?" btn-primary":"");
+    b.textContent = label;
+    b.onclick = ()=>{ state.adminTab=key; renderAdmin(); };
+    tabsEl.appendChild(b);
+  });
+
+  const body = document.getElementById("mainTabBody");
+  if(state.adminTab==="training") renderAddTrainingTab(body);
+  else if(state.adminTab==="assign") renderAssignTaskTab(body);
+  else if(state.adminTab==="tagging") renderTaggingTab(body);
+  else if(state.adminTab==="registration") renderRegistrationTab(body);
+  else if(state.adminTab==="access") renderAccessTab(body);
+}
+
+// ---------------- TAB: Add Training Content ----------------
+function renderAddTrainingTab(body){
+  body.innerHTML = `<div class="grid" id="adminTabs"></div>
+  <div id="adminBody"></div>`;
+  const tabs = document.getElementById("adminTabs");
+  PERSONAS.forEach(p=>{
+    const b = document.createElement("button");
+    b.className="btn"+(p===state.persona?" btn-primary":"");
+    b.textContent = p;
+    b.onclick = ()=>{ state.persona=p; state.topic=null; renderAdmin(); };
+    tabs.appendChild(b);
+  });
+  const bodyEl = document.getElementById("adminBody");
+  bodyEl.innerHTML = `<div class="section-title">Content for ${state.persona}</div>
+  <p style="color:var(--muted);font-size:12px;margin-top:-4px">Give each piece of content a Topic/Module — items sharing a topic are grouped for staff and share one assessment below.</p>
+  <div id="adminContentList">Loading…</div>
+  <button class="btn btn-primary btn-sm" id="addContentBtn">＋ Add content</button>
+  <div class="section-title">Assessments for ${state.persona}</div>
+  <p style="color:var(--muted);font-size:12px;margin-top:-4px">Pick a topic/module to manage its own assessment questions and submissions.</p>
+  <div class="content-card" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <label style="margin:0">Pass mark (% of MCQs correct)</label>
+    <input class="field" id="passScoreInput" style="width:80px;margin:0">
+    <button class="btn btn-sm" id="savePassScore">Save</button>
+  </div>
+  <div class="top-actions" id="topicTabs" style="margin-bottom:8px"></div>
+  <div id="adminQList">Loading…</div>
+  <button class="btn btn-primary btn-sm" id="addQBtn">＋ Add question</button>
+  <div class="section-title">Submissions</div>
+  <div id="adminSubs">Loading…</div>`;
+  document.getElementById("addContentBtn").onclick = ()=>openContentForm(null);
+  document.getElementById("addQBtn").onclick = ()=>openQuestionForm();
+  wirePassScoreSave();
+  loadAdminContent();
+}
+
+// ---------------- TAB: Assign Task ----------------
+async function renderAssignTaskTab(body){
+  body.innerHTML = `<div class="section-title" style="margin-top:0">Users</div>
+  <div id="userRatioCard" class="content-card">Loading…</div>
+  <div class="section-title">Completion overview</div>
+  <div id="statsPanel"></div>
+  <div class="section-title">Currently Assigned Users</div>
+  <div id="adminAllUsers">Loading…</div>
+  <div class="section-title">Assign Content to Users</div>
+  <div id="assignPanel">Loading…</div>`;
+  loadUserRatio();
+  renderStatsPanel();
+  loadAllUsers();
+  renderAssignPanel();
+}
+async function loadUserRatio(){
+  const el = document.getElementById("userRatioCard");
+  try{
+    const rows = await api("/api/admin/users");
+    const total = rows.length;
+    const now = Date.now();
+    const active = rows.filter(({data:p})=> p.lastLogin && (now-p.lastLogin) <= (1000*60*60*24*30*6)).length;
+    const inactive = total - active;
+    const pct = n => total>0 ? Math.round((n/total)*100) : 0;
+    el.innerHTML = `<div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div><div style="font-size:22px;font-weight:700">${total}</div><div style="color:var(--muted);font-size:12px">Total Users</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--ok)">${active} (${pct(active)}%)</div><div style="color:var(--muted);font-size:12px">Active</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--danger)">${inactive} (${pct(inactive)}%)</div><div style="color:var(--muted);font-size:12px">Inactive</div></div>
+    </div>`;
+  }catch(e){ el.innerHTML = `<div class="empty">Could not load.</div>`; }
+}
+
+// ---------------- TAB: Tagging ----------------
+function renderTaggingTab(body){
+  body.innerHTML = `<div class="section-title" style="margin-top:0">Tagging</div>
+  <p style="color:var(--muted);font-size:12px;margin-top:-4px">Who reports to whom (Scanner → Team Leader / Hub Manager and above / City Lead / Regional Manager, and so on up the chain). Set at registration; bulk-adjustable here.</p>
+  <div id="taggingPanel">Loading…</div>`;
+  renderTaggingPanel();
+}
+
+// ---------------- TAB: Registration ----------------
+async function renderRegistrationTab(body){
+  body.innerHTML = `<div class="section-title" style="margin-top:0">Pending Registrations</div>
+  <div class="content-card">
+    <div class="row">
+      <div><label>Filter by city</label><select class="field" id="regCityFilter" style="min-width:160px"><option value="">All cities</option></select></div>
+    </div>
+    <div class="top-actions" style="margin-top:8px">
+      <button class="btn btn-sm" id="dlRegCsvBtn">⬇ Download pending (CSV)</button>
+      <input class="field" type="file" id="regUploadFile" accept=".xlsx,.xls,.csv" style="max-width:220px">
+      <button class="btn btn-sm btn-primary" id="ulRegCsvBtn">⬆ Upload (Status=Approved)</button>
+    </div>
+    <div id="regCsvResult"></div>
+  </div>
+  <div id="adminRegs">Loading…</div>`;
+  try{
+    const mapping = await loadAdminHubMapping();
+    const citySel = document.getElementById("regCityFilter");
+    [...new Set(mapping.map(m=>m.city))].forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=c; citySel.appendChild(o); });
+    citySel.onchange = ()=> loadAdminRegs(citySel.value);
+  }catch(e){}
+  document.getElementById("dlRegCsvBtn").onclick = ()=>{
+    fetch(API+"/api/admin/registrations/export-csv", {headers:{Authorization:"Bearer "+adminSession.token}})
+      .then(r=>r.blob()).then(blob=>{
+        const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="pending-registrations.csv"; a.click();
+      }).catch(()=>showToast("Download failed."));
+  };
+  document.getElementById("ulRegCsvBtn").onclick = async ()=>{
+    const fileInput = document.getElementById("regUploadFile");
+    const resEl = document.getElementById("regCsvResult");
+    if(!fileInput.files[0]){ showToast("Choose a file first."); return; }
+    const fd = new FormData(); fd.append("file", fileInput.files[0]);
+    resEl.innerHTML = `<div class="msg">Processing…</div>`;
+    try{
+      const { results } = await apiUpload("/api/admin/registrations/upload-csv", fd);
+      resEl.innerHTML = `<table>${results.map(r=>`<tr><td>${escapeHtml(r.phone)}</td><td>${r.status==="approved"?"✅ Approved":r.status==="skipped"?"— Skipped":"❌ "+escapeHtml(r.reason||"error")}</td></tr>`).join("")}</table>`;
+      loadAdminRegs();
+    }catch(e){ resEl.innerHTML = `<div class="msg msg-danger">Upload failed.</div>`; }
+    fileInput.value = "";
+  };
+  loadAdminRegs();
+}
+
+// ---------------- TAB: Access ----------------
+async function renderAccessTab(body){
+  const isSuperAdmin = adminSession.tier === "super_admin";
+  body.innerHTML = `<div class="section-title" style="margin-top:0">Admin Accounts</div>
+  <div id="adminAccounts">Loading…</div>
+  <div class="section-title">Add User Directly</div>
+  <p style="color:var(--muted);font-size:12px;margin-top:-4px">${isSuperAdmin ? "Creates an already-approved user in one step — skips the self-registration + approval queue entirely." : "Super Admin only."}</p>
+  <div id="addUserPanel">${isSuperAdmin ? "" : '<div class="empty">Super Admin only.</div>'}</div>
+  <div class="section-title">Regional Manager Admin-Access Verification</div>
+  <p style="color:var(--muted);font-size:12px;margin-top:-4px">Regional Managers get full admin (tree) access only after Super Admin verifies them here.</p>
+  <div id="rmVerifyList">Loading…</div>
+  <div class="section-title">User Access Tiers</div>
+  <p style="color:var(--muted);font-size:12px;margin-top:-4px">Auto-assigned by persona on approval (Scanner/Team Leader → View, Hub Manager and above/City Lead → Semi Admin, Regional Manager → Admin). Super Admin can override, edit, or remove any user here.</p>
+  <div id="accessTierList">Loading…</div>
+  <div class="section-title">City ↔ Hub / DC / FC Mapping</div>
+  <div id="hubMappingPanel">Loading…</div>
+  <div class="section-title">Persona ↔ Tagging counts</div>
+  <div id="taggingGraphPanel"></div>
+  <div class="section-title">Registration Form Builder</div>
+  <p style="color:var(--muted);font-size:12px;margin-top:-4px">${isSuperAdmin ? "Add custom fields to the registration form. Removing a field only stops showing it — past answers already saved under it are kept." : "Super Admin only."}</p>
+  <div id="formBuilderPanel">${isSuperAdmin ? "Loading…" : ""}</div>`;
+  loadAdminAccounts();
+  renderHubMappingPanel();
+  renderTaggingGraphPanel();
+  if(isSuperAdmin){
+    renderAddUserPanel();
+    loadRmVerifyList();
+    loadAccessTierList();
+    renderFormBuilderPanel();
+  } else {
+    document.getElementById("rmVerifyList").innerHTML = `<div class="empty">Super Admin only.</div>`;
+    document.getElementById("accessTierList").innerHTML = `<div class="empty">Super Admin only.</div>`;
+  }
+}
+
+// Mirrors the staff self-registration form (same fields, same tagging
+// hierarchy rule, same custom fields) but submits straight to an
+// already-approved profile via POST /api/admin/users — for walk-in /
+// phone / WhatsApp sign-ups an admin is entering on someone's behalf.
+async function renderAddUserPanel(){
+  const el = document.getElementById("addUserPanel");
+  el.innerHTML = `<div class="content-card">
+    <label>Full Name *</label><input class="field" id="auName">
+    <label>Mobile Number *</label><input class="field" id="auPhone">
+    <label>Email ID *</label><input class="field" id="auEmail" type="email">
+    <label>Hub / DC / FC Name *</label><input class="field" id="auHub">
+    <label>City Name *</label><input class="field" id="auCity">
+    <label>Role *</label>
+    <select class="field" id="auRole"></select>
+    <div id="auTaggedWrap">
+      <label>Reporting To (search by name) *</label>
+      <input class="field" id="auTaggedSearch" placeholder="Start typing a name…" autocomplete="off">
+      <input type="hidden" id="auTaggedId">
+      <div id="auTaggedList" class="hidden" style="background:var(--panel);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto"></div>
+    </div>
+    <label>PIN (leave blank to auto-generate)</label>
+    <input class="field" id="auPin" maxlength="4" inputmode="numeric" placeholder="e.g. 4821">
+    <div id="auCustomFields"></div>
+    <button class="btn btn-primary btn-sm" id="auSubmit" style="margin-top:8px">＋ Add &amp; Approve User</button>
+    <div id="auMsg"></div>
+  </div>`;
+  renderCustomFieldsInto("auCustomFields", {});
+  const roleSel = document.getElementById("auRole");
+  PERSONAS.forEach(p=>{ const o=document.createElement("option"); o.value=p; o.textContent=p; roleSel.appendChild(o); });
+  const taggedWrap = document.getElementById("auTaggedWrap");
+  const taggedInput = document.getElementById("auTaggedSearch");
+  const syncTaggedVisibility = ()=> taggedWrap.classList.toggle("hidden", roleSel.value==="Regional Manager");
+  roleSel.onchange = ()=>{ taggedInput.value=""; document.getElementById("auTaggedId").value=""; syncTaggedVisibility(); };
+  syncTaggedVisibility();
+  wireUserTypeahead({
+    inputEl: taggedInput, hiddenIdEl: document.getElementById("auTaggedId"), listEl: document.getElementById("auTaggedList"),
+    fetchCandidates: async (q)=>{ try{ return await api("/api/tag-candidates?forRole="+encodeURIComponent(roleSel.value)+"&q="+encodeURIComponent(q)); }catch(e){ return []; } }
+  });
+  document.getElementById("auSubmit").onclick = async ()=>{
+    const msgEl = document.getElementById("auMsg");
+    const data = {
+      name: document.getElementById("auName").value.trim(),
+      phone: document.getElementById("auPhone").value.trim().toLowerCase(),
+      email: document.getElementById("auEmail").value.trim().toLowerCase(),
+      hub: document.getElementById("auHub").value.trim(),
+      city: document.getElementById("auCity").value.trim(),
+      role: roleSel.value,
+      pin: document.getElementById("auPin").value.trim() || undefined,
+      taggedTo: document.getElementById("auTaggedId").value || undefined,
+      customFields: collectCustomFieldValues("auCustomFields")
+    };
+    if(!data.name || !data.phone || !data.email || !data.hub || !data.city){ msgEl.innerHTML=`<div class="msg msg-danger">All fields are required.</div>`; return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){ msgEl.innerHTML=`<div class="msg msg-danger">Enter a valid email address.</div>`; return; }
+    if(!/^\d{7,15}$/.test(data.phone.replace(/[\s\-+]/g,""))){ msgEl.innerHTML=`<div class="msg msg-danger">Enter a valid mobile number.</div>`; return; }
+    if(roleSel.value!=="Regional Manager" && !data.taggedTo){ msgEl.innerHTML=`<div class="msg msg-danger">Pick who this person reports to from the search results.</div>`; return; }
+    if(!validateRequiredCustomFields("auCustomFields", msgEl)) return;
+    try{
+      const result = await api("/api/admin/users", {method:"POST", body: JSON.stringify(data)});
+      showToast("Added "+data.name+".");
+      showPinToShare(result.profile);
+      renderAddUserPanel();
+      loadAccessTierList();
+    }catch(e){
+      if(e.status===409) msgEl.innerHTML=`<div class="msg msg-danger">That phone number or email is already registered.</div>`;
+      else msgEl.innerHTML=`<div class="msg msg-danger">Could not add user. Check the fields and try again.</div>`;
+    }
+  };
+}
+async function loadRmVerifyList(){
+  const el = document.getElementById("rmVerifyList");
+  try{
+    const rows = await api("/api/admin/pending-admin-verifications");
+    el.innerHTML = rows.length===0 ? `<div class="empty">Nothing pending.</div>` :
+      rows.map(({id,data:p})=>`<div class="content-card row"><div><b>${escapeHtml(p.name)}</b> — ${escapeHtml(p.phone)} · ${escapeHtml(p.hub)}, ${escapeHtml(p.city)}</div><button class="btn btn-primary btn-sm" data-verify="${escapeAttr(id)}">✅ Verify Admin Access</button></div>`).join("");
+    el.querySelectorAll("[data-verify]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        try{ await api("/api/admin/users/"+btn.dataset.verify+"/verify-admin", {method:"POST"}); showToast("Verified."); loadRmVerifyList(); }
+        catch(e){ showToast("Could not verify."); }
+      };
+    });
+  }catch(e){ el.innerHTML = `<div class="empty">Could not load.</div>`; }
+}
+// A plain scrollable table rather than stacked cards — stays usable once
+// the user list runs into the dozens/hundreds instead of growing the page
+// forever. Edit expands an inline row for name/phone/hub/city; Delete
+// reuses the same revoke endpoint as "Currently Assigned Users".
+async function loadAccessTierList(){
+  const el = document.getElementById("accessTierList");
+  try{
+    const rows = await api("/api/admin/users");
+    if(rows.length===0){ el.innerHTML = `<div class="empty">No users yet.</div>`; return; }
+    el.innerHTML = `<div style="max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:var(--panel);z-index:1">
+          <tr>
+            <th style="text-align:left;padding:8px">Name</th>
+            <th style="text-align:left;padding:8px">Role</th>
+            <th style="text-align:left;padding:8px">Phone · Hub</th>
+            <th style="text-align:left;padding:8px">Tier</th>
+            <th style="padding:8px"></th>
+          </tr>
+        </thead>
+        <tbody id="accessTierBody">
+          ${rows.map(({id,data:p})=>`
+          <tr data-row="${escapeAttr(id)}" style="border-top:1px solid var(--border)">
+            <td style="padding:8px"><b>${escapeHtml(p.name)}</b></td>
+            <td style="padding:8px"><span class="pill">${escapeHtml(p.primaryRole||"")}</span></td>
+            <td style="padding:8px;font-size:12px;color:var(--muted)">${escapeHtml(p.phone||"")} · ${escapeHtml(p.hub||"")}</td>
+            <td style="padding:8px">
+              <select class="field" style="min-width:130px" data-tier="${escapeAttr(id)}">
+                ${["view","semi_admin","admin","admin_pending"].map(t=>`<option value="${t}" ${p.accessTier===t?"selected":""}>${t}</option>`).join("")}
+              </select>
+            </td>
+            <td style="padding:8px;white-space:nowrap">
+              <button class="btn btn-sm" data-savetier="${escapeAttr(id)}">Save</button>
+              <button class="btn btn-sm" data-edit="${escapeAttr(id)}">Edit</button>
+              <button class="btn btn-sm btn-danger" data-delete="${escapeAttr(id)}">Delete</button>
+            </td>
+          </tr>
+          <tr class="hidden" id="editRow_${escapeAttr(id)}" style="border-top:1px solid var(--border)">
+            <td colspan="5" style="padding:8px;background:var(--bg)">
+              <div class="row">
+                <input class="field" style="flex:1;min-width:120px" data-f="name" placeholder="Name" value="${escapeAttr(p.name)}">
+                <input class="field" style="flex:1;min-width:120px" data-f="phone" placeholder="Phone" value="${escapeAttr(p.phone)}">
+                <input class="field" style="flex:1;min-width:120px" data-f="email" placeholder="Email" value="${escapeAttr(p.email)}">
+                <input class="field" style="flex:1;min-width:120px" data-f="hub" placeholder="Hub" value="${escapeAttr(p.hub)}">
+                <input class="field" style="flex:1;min-width:120px" data-f="city" placeholder="City" value="${escapeAttr(p.city)}">
+                <button class="btn btn-primary btn-sm" data-saveedit="${escapeAttr(id)}">Save changes</button>
+              </div>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+    el.querySelectorAll("[data-savetier]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const sel = el.querySelector(`[data-tier="${btn.dataset.savetier}"]`);
+        try{ await api("/api/admin/users/"+btn.dataset.savetier+"/access-tier", {method:"POST", body: JSON.stringify({tier: sel.value})}); showToast("Updated."); }
+        catch(e){ showToast("Could not update."); }
+      };
+    });
+    el.querySelectorAll("[data-edit]").forEach(btn=>{
+      btn.onclick = ()=> document.getElementById("editRow_"+btn.dataset.edit).classList.toggle("hidden");
+    });
+    el.querySelectorAll("[data-saveedit]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.dataset.saveedit;
+        const editRow = document.getElementById("editRow_"+id);
+        const fields = {};
+        editRow.querySelectorAll("[data-f]").forEach(inp=>{ fields[inp.dataset.f] = inp.value.trim(); });
+        try{ await api("/api/admin/users/"+id+"/profile", {method:"POST", body: JSON.stringify(fields)}); showToast("Saved."); loadAccessTierList(); }
+        catch(e){ showToast("Could not save — check the fields."); }
+      };
+    });
+    el.querySelectorAll("[data-delete]").forEach(btn=>{
+      btn.onclick = (e)=> armConfirm(e.target, async ()=>{
+        try{ const result = await api("/api/admin/users/"+btn.dataset.delete, {method:"DELETE"}); showToast("Deleted "+(result.name||"user")+"."); loadAccessTierList(); }
+        catch(e){ showToast("Delete failed."); }
+      });
+    });
+  }catch(e){ el.innerHTML = `<div class="empty">Could not load.</div>`; }
+}
+let taggingGraphChart = null;
+async function renderTaggingGraphPanel(){
+  const el = document.getElementById("taggingGraphPanel");
+  el.innerHTML = `<div class="content-card">
+    <label>Chart type</label>
+    <select class="field" id="tagGraphType" style="max-width:160px">
+      <option value="bar">Bar</option>
+      <option value="donut">Donut</option>
+    </select>
+    <canvas id="tagGraphCanvas" height="100"></canvas>
+  </div>`;
+  document.getElementById("tagGraphType").onchange = drawTaggingGraph;
+  drawTaggingGraph();
+}
+async function drawTaggingGraph(){
+  const canvasWrap = document.getElementById("tagGraphCanvas")?.parentElement;
+  if(typeof Chart === "undefined"){
+    if(canvasWrap) canvasWrap.innerHTML += `<div class="msg msg-danger">Chart.js didn't load — the graph can't render without it.</div>`;
+    return;
+  }
+  let data;
+  try{ data = await api("/api/admin/stats/tagging"); }
+  catch(e){ if(canvasWrap) canvasWrap.innerHTML += `<div class="msg msg-danger">Could not load tagging stats.</div>`; return; }
+  const type = document.getElementById("tagGraphType").value;
+  const ctx = document.getElementById("tagGraphCanvas").getContext("2d");
+  if(taggingGraphChart) taggingGraphChart.destroy();
+  const higherPersonas = PERSONAS.filter(p=>p!=="Scanner"); // nothing is ever tagged to a Scanner
+  const subPersonas = PERSONAS.filter(p=>p!=="Regional Manager"); // RM never reports to anyone, so never appears as a subordinate
+  const colors = ["#1f8a4c","#2f6fed","#a86a00","#c0392b","#7a4fd1"];
+  try{
+    if(type==="donut"){
+      const totals = subPersonas.map(sp => higherPersonas.reduce((sum,hp)=> sum + ((data[hp]||{})[sp]||0), 0));
+      taggingGraphChart = new Chart(ctx, { type:"doughnut", data:{ labels: subPersonas, datasets:[{ data: totals, backgroundColor: colors }] } });
+    } else {
+      taggingGraphChart = new Chart(ctx, {
+        type:"bar",
+        data:{ labels: higherPersonas, datasets: subPersonas.map((sp,i)=>({ label: sp, data: higherPersonas.map(hp=>(data[hp]||{})[sp]||0), backgroundColor: colors[i%colors.length] })) },
+        options:{ responsive:true, scales:{ x:{stacked:true}, y:{stacked:true} } }
+      });
+    }
+  }catch(e){ console.error("Tagging chart render failed:", e); if(canvasWrap) canvasWrap.innerHTML += `<div class="msg msg-danger">Chart failed to render.</div>`; }
+}
+async function renderFormBuilderPanel(){
+  const el = document.getElementById("formBuilderPanel");
+  let fields;
+  try{ fields = await api("/api/form-fields"); }catch(e){ el.innerHTML = `<div class="empty">Could not load.</div>`; return; }
+  el.innerHTML = `<div class="content-card">
+    <div id="formFieldsList">${fields.length===0 ? '<div class="empty">No custom fields yet.</div>' :
+      fields.map(f=>`<div class="row" style="align-items:center"><span class="pill">${escapeHtml(f.label)} (${f.type}${f.required?", required":""})</span><button class="btn btn-sm btn-danger" data-delfield="${escapeAttr(f.id)}">✕</button></div>`).join("")}
+    </div>
+    <label>New field label</label><input class="field" id="ffLabel">
+    <label>Type</label>
+    <select class="field" id="ffType">
+      <option value="text">Text</option>
+      <option value="number">Number</option>
+      <option value="dropdown">Dropdown</option>
+      <option value="date">Date</option>
+    </select>
+    <div id="ffOptionsWrap" class="hidden"><label>Options (comma-separated)</label><input class="field" id="ffOptions" placeholder="Option A, Option B"></div>
+    <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ffRequired"> Required</label>
+    <button class="btn btn-primary btn-sm" id="ffAdd">＋ Add field</button>
+  </div>`;
+  document.getElementById("ffType").onchange = (e)=> document.getElementById("ffOptionsWrap").classList.toggle("hidden", e.target.value!=="dropdown");
+  el.querySelectorAll("[data-delfield]").forEach(btn=>{
+    btn.onclick = async ()=>{ try{ await api("/api/admin/form-fields/"+btn.dataset.delfield, {method:"DELETE"}); renderFormBuilderPanel(); }catch(e){ showToast("Delete failed."); } };
+  });
+  document.getElementById("ffAdd").onclick = async ()=>{
+    const label = document.getElementById("ffLabel").value.trim();
+    const type = document.getElementById("ffType").value;
+    const required = document.getElementById("ffRequired").checked;
+    const options = type==="dropdown" ? document.getElementById("ffOptions").value.split(",").map(s=>s.trim()).filter(Boolean) : [];
+    if(!label){ showToast("Enter a field label."); return; }
+    if(type==="dropdown" && options.length<2){ showToast("Enter at least 2 comma-separated options."); return; }
+    try{ await api("/api/admin/form-fields", {method:"POST", body: JSON.stringify({label,type,options,required})}); renderFormBuilderPanel(); }
+    catch(e){ showToast("Could not add field."); }
+  };
+}
+
+// ---------------- TAGGING ----------------
+function renderTaggingPanel(){
+  const el = document.getElementById("taggingPanel");
+  el.innerHTML = `<div class="content-card">
+    <div class="top-actions" style="margin-bottom:10px">
+      <button class="btn btn-sm" id="dlTagCsvBtn">⬇ Download current tagging (CSV)</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:0">Bulk-set tagging for existing users via spreadsheet. Columns: <b>Name, Phone, Email, Tagged Name, Tagged Designation, Tagged Number</b> — matched by Phone (subject) and Tagged Number (the person they report to); a row is rejected if the tagged person isn't actually above the subject in the hierarchy.</p>
+    <input class="field" type="file" id="tagBulkFile" accept=".xlsx,.xls,.csv">
+    <button class="btn btn-primary btn-sm" id="tagBulkSubmit">⬆ Upload Tagging</button>
+    <div id="tagBulkResult"></div>
+  </div>`;
+  document.getElementById("dlTagCsvBtn").onclick = ()=>{
+    fetch(API+"/api/admin/tagging/export-csv", {headers:{Authorization:"Bearer "+adminSession.token}})
+      .then(r=>{ if(!r.ok) throw new Error("bad_status"); return r.blob(); })
+      .then(blob=>{
+        const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tagging-export.csv"; a.click();
+      }).catch(()=>showToast("Download failed."));
+  };
+  document.getElementById("tagBulkSubmit").onclick = async ()=>{
+    const fileInput = document.getElementById("tagBulkFile");
+    const resEl = document.getElementById("tagBulkResult");
+    if(!fileInput.files[0]){ showToast("Choose a file first."); return; }
+    const fd = new FormData(); fd.append("file", fileInput.files[0]);
+    resEl.innerHTML = `<div class="msg">Processing…</div>`;
+    try{
+      const { results } = await apiUpload("/api/admin/bulk-tagging", fd);
+      resEl.innerHTML = `<table><tr><th>Phone</th><th>Status</th><th>Tagged To</th></tr>${
+        results.map(r=>`<tr><td>${escapeHtml(r.phone)}</td><td>${r.status==="updated"?"✅ Updated":"❌ "+escapeHtml(r.reason||"error")}</td><td>${r.taggedTo?escapeHtml(r.taggedTo):"—"}</td></tr>`).join("")
+      }</table>`;
+    }catch(e){ resEl.innerHTML = `<div class="msg msg-danger">Upload failed — admin access required.</div>`; }
+    fileInput.value = "";
+  };
+}
+
+// Topics discovered for the persona currently selected in the admin
+// panel — always includes "General" as a fallback even with no content,
+// so an assessment can still be set up before any content exists.
+let adminTopics = ["General"];
+
+function renderTopicTabs(){
+  const wrap = document.getElementById("topicTabs");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  adminTopics.forEach(t=>{
+    const b = document.createElement("button");
+    b.className = "btn btn-sm"+(t===state.topic?" btn-primary":"");
+    b.textContent = t;
+    b.onclick = ()=>{ state.topic = t; renderTopicTabs(); loadAdminQuestions(); loadAdminSubs(); };
+    wrap.appendChild(b);
+  });
+}
+
+function wirePassScoreSave(){
+  const btn = document.getElementById("savePassScore");
+  if(!btn) return;
+  btn.onclick = async ()=>{
+    const val = Number(document.getElementById("passScoreInput").value);
+    if(!(val>0 && val<=100)){ showToast("Enter a pass mark between 1 and 100."); return; }
+    try{
+      await api("/api/admin/pass-score", {method:"POST", body: JSON.stringify({persona: state.persona, topic: state.topic, passScore: val})});
+      showToast("Pass mark saved.");
+    }catch(e){ showToast("Save failed — admin access required."); }
+  };
+}
+
+async function loadAdminAccounts(){
+  const el = document.getElementById("adminAccounts");
+  try{
+    const rows = await api("/api/admin/admins");
+    el.innerHTML = `<div class="content-card">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${
+        rows.map(a=>`<span class="pill">${escapeHtml(a.username)}${a.id===adminSession.id?" (you)":""}</span>`).join("")
+      }</div>
+      <label>Add another admin</label>
+      <input class="field" id="naName" placeholder="Name">
+      <input class="field" id="naPhone" placeholder="Number">
+      <input class="field" id="naEmail" placeholder="Email ID">
+      <input class="field" id="naUser" placeholder="Username">
+      <input class="field" id="naPass" type="password" placeholder="Password (min 6 chars)">
+      <button class="btn btn-sm" id="naSubmit">＋ Add admin</button>
+    </div>`;
+    document.getElementById("naSubmit").onclick = async ()=>{
+      const uname = document.getElementById("naUser").value.trim().toLowerCase();
+      const pass = document.getElementById("naPass").value;
+      const name = document.getElementById("naName").value.trim();
+      const phone = document.getElementById("naPhone").value.trim();
+      const email = document.getElementById("naEmail").value.trim();
+      if(!uname || pass.length<6){ showToast("Username required; password min 6 characters."); return; }
+      try{
+        await api("/api/admin/admins", {method:"POST", body: JSON.stringify({username:uname, password:pass, name, phone, email})});
+        showToast("Admin added: "+uname);
+        loadAdminAccounts();
+      }catch(e){
+        if(e.status===409) showToast("That username is already in use.");
+        else if(e.status===403) showToast("Only Super Admin can add admin accounts.");
+        else showToast("Could not add admin.");
+      }
+    };
+  }catch(e){ el.innerHTML = `<div class="empty">Could not load admin accounts.</div>`; }
+}
+
+async function loadAdminRegs(cityFilter){
+  const el = document.getElementById("adminRegs");
+  let rows;
+  try{ rows = await api("/api/admin/registrations"); }
+  catch(e){ el.innerHTML = `<div class="empty">Could not load registrations.</div>`; return; }
+  if(cityFilter) rows = rows.filter(({data:r})=> r.city===cityFilter);
+  if(rows.length===0){ el.innerHTML = `<div class="empty">No pending registrations.</div>`; return; }
+  el.innerHTML = "";
+  rows.forEach(({id,data:r})=>{
+    const row = document.createElement("div");
+    row.className="content-card";
+    row.innerHTML = `<div><b>${escapeHtml(r.name)}</b> — ${escapeHtml(r.phone)} / ${escapeHtml(r.email)}<br>
+    <span style="color:var(--muted);font-size:12px">${escapeHtml(r.hub)}, ${escapeHtml(r.city)} · Role requested: ${escapeHtml(r.role)} · Reports to: ${r.taggedName?escapeHtml(r.taggedName):(r.role==="Regional Manager"?"— (Super Admin approves directly)":"—")}</span></div>
+    <label>Assign role(s) — select one or more</label>
+    <div id="roles_${id}">${roleCheckboxesHtml("roles_"+id, [r.role])}</div>
+    <div class="top-actions">
+      <button class="btn btn-primary btn-sm" data-a>Approve</button>
+      <button class="btn btn-danger btn-sm" data-r>Reject</button>
+    </div>
+    <div class="hidden" id="rejBox_${id}">
+      <input class="field" id="rejNote_${id}" placeholder="Reason for rejection (optional)">
+      <button class="btn btn-danger btn-sm" data-rConfirm>Confirm Reject</button>
+    </div>`;
+    row.querySelector("[data-a]").onclick = async ()=>{
+      const roles = getCheckedRoles(row, "roles_"+id);
+      if(roles.length===0){ showToast("Select at least one role."); return; }
+      try{
+        const result = await api("/api/admin/registrations/"+id+"/approve", {method:"POST", body: JSON.stringify({roles})});
+        showToast("Approved "+r.name+".");
+        showPinToShare(result.profile);
+        loadAdminRegs();
+      }catch(e){ showToast("Approve failed."); }
+    };
+    row.querySelector("[data-r]").onclick = ()=> document.getElementById("rejBox_"+id).classList.remove("hidden");
+    row.querySelector("[data-rConfirm]").onclick = async ()=>{
+      const note = document.getElementById("rejNote_"+id).value.trim();
+      try{ await api("/api/admin/registrations/"+id+"/reject", {method:"POST", body: JSON.stringify({note})}); showToast("Rejected."); loadAdminRegs(); }
+      catch(e){ showToast("Reject failed."); }
+    };
+    el.appendChild(row);
+  });
+}
+
+function roleCheckboxesHtml(idPrefix, selectedArr){
+  const sel = selectedArr || [];
+  let out = `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:6px 0">`;
+  PERSONAS.forEach(p=>{
+    const cid = idPrefix+"__"+slug(p);
+    out += `<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text)">
+      <input type="checkbox" id="${cid}" data-role="${p}" ${sel.includes(p)?"checked":""}> ${p}</label>`;
+  });
+  out += `</div>`;
+  return out;
+}
+function getCheckedRoles(scopeEl, idPrefix){
+  const roles = [];
+  scopeEl.querySelectorAll(`input[type=checkbox][id^="${idPrefix}__"]`).forEach(cb=>{ if(cb.checked) roles.push(cb.dataset.role); });
+  return roles;
+}
+
+// Emailing login info isn't wired up yet (no email service configured) —
+// this shows the PIN for the admin to copy/share manually instead of
+// silently failing. Once you configure SMTP/Gmail on the server, this is
+// the one function to swap over to an actual send.
+function showPinToShare(p){
+  if(!p || !p.pin){ return; }
+  showToast("Share with "+(p.name||"user")+" — Login PIN: "+p.pin, 8000);
+}
+
+async function loadAllUsers(){
+  const el = document.getElementById("adminAllUsers");
+  let rows;
+  try{ rows = await api("/api/admin/users"); }
+  catch(e){ el.innerHTML = `<div class="empty">Could not load users.</div>`; return; }
+  if(rows.length===0){ el.innerHTML = `<div class="empty">No users assigned yet.</div>`; return; }
+  el.innerHTML = "";
+  rows.forEach(({id,data:p})=>{
+    const row = document.createElement("div");
+    row.className="content-card row";
+    const currentRoles = p.roles || (p.role ? [p.role] : []);
+    const isInactive = !p.lastLogin || (Date.now()-p.lastLogin) > (1000*60*60*24*30*6);
+    row.innerHTML = `<div style="flex:1;min-width:160px"><b>${escapeHtml(p.name||"(unnamed)")}</b> <span class="pill" style="font-size:10px">${p.primaryRole?escapeHtml(p.primaryRole):""}</span> <span class="pill" style="font-size:10px;${isInactive?'color:var(--danger)':'color:var(--ok)'}">${isInactive?"Inactive":"Active"}</span><br>
+    <span style="color:var(--muted);font-size:12px">${escapeHtml(p.hub)} ${p.city?"· "+escapeHtml(p.city):""} · ${escapeHtml(p.phone||"")}</span></div>
+    <div style="flex:2;min-width:240px">
+      ${roleCheckboxesHtml("editRole_"+id, currentRoles)}
+      <div class="top-actions">
+        <button class="btn btn-sm" data-save>Save</button>
+        <button class="btn btn-sm" data-pin>Reset PIN</button>
+        <button class="btn btn-sm btn-danger" data-revoke>Revoke</button>
+      </div>
+    </div>`;
+    row.querySelector("[data-pin]").onclick = async ()=>{
+      try{
+        const result = await api("/api/admin/users/"+id+"/reset-pin", {method:"POST"});
+        showPinToShare({name:result.name, pin:result.pin});
+      }
+      catch(e){ showToast("Could not reset PIN."); }
+    };
+    const saveBtn = row.querySelector("[data-save]");
+    if(saveBtn) saveBtn.onclick = async ()=>{
+      const newRoles = getCheckedRoles(row, "editRole_"+id);
+      if(newRoles.length===0){ showToast("Select at least one role."); return; }
+      try{ await api("/api/admin/users/"+id+"/roles", {method:"POST", body: JSON.stringify({roles:newRoles})}); showToast("Updated."); }
+      catch(e){ showToast("Save failed."); }
+    };
+    row.querySelector("[data-revoke]").onclick = (e)=> armConfirm(e.target, async ()=>{
+      try{
+        const result = await api("/api/admin/users/"+id, {method:"DELETE"});
+        showToast("Access revoked for "+(result.name||p.name)+".");
+        loadAllUsers();
+      }catch(e){ showToast("Revoke failed."); }
+    });
+    el.appendChild(row);
+  });
+}
+
+// ---------------- CITY <-> HUB/DC/FC MAPPING (shared, admin-managed) ----------------
+async function renderHubMappingPanel(){
+  const el = document.getElementById("hubMappingPanel");
+  let rows;
+  try{ rows = await api("/api/hub-mapping"); }catch(e){ el.innerHTML = `<div class="empty">Could not load mapping.</div>`; return; }
+  const byCity = {};
+  rows.forEach(r=>{ (byCity[r.city] ||= []).push(r); });
+  el.innerHTML = `<div class="content-card">
+    <div id="hubMapList">${
+      Object.keys(byCity).length===0 ? `<div class="empty">No cities added yet.</div>` :
+      Object.entries(byCity).map(([city,hubs])=>`
+        <div style="margin-bottom:8px">
+          <b>${escapeHtml(city)}</b><br>
+          ${hubs.map(h=>`<span class="tag" style="display:inline-flex;align-items:center;gap:6px">${escapeHtml(h.hub)} <button data-del="${h.id}" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:12px">✕</button></span>`).join(" ")}
+        </div>`).join("")
+    }</div>
+    <div class="row" style="margin-top:8px">
+      <input class="field" id="hmCity" placeholder="City name" style="flex:1;min-width:140px">
+      <input class="field" id="hmHub" placeholder="Hub / DC / FC name" style="flex:1;min-width:140px">
+      <button class="btn btn-sm" id="hmAdd" style="align-self:center">＋ Add</button>
+    </div>
+  </div>`;
+  el.querySelectorAll("[data-del]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      try{ await api("/api/admin/hub-mapping/"+btn.dataset.del, {method:"DELETE"}); renderHubMappingPanel(); }
+      catch(e){ showToast("Could not remove."); }
+    };
+  });
+  document.getElementById("hmAdd").onclick = async ()=>{
+    const city = document.getElementById("hmCity").value.trim();
+    const hub = document.getElementById("hmHub").value.trim();
+    if(!city || !hub){ showToast("Enter both a city and a hub name."); return; }
+    try{ await api("/api/admin/hub-mapping", {method:"POST", body: JSON.stringify({city,hub})}); renderHubMappingPanel(); }
+    catch(e){ showToast("Could not add — admin access required."); }
+  };
+}
+
+// ---------------- COMPLETION GRAPH (city/hub summary + persona breakdown) ----------------
+let statsChart = null, statsPersonaChart = null;
+async function renderStatsPanel(){
+  const el = document.getElementById("statsPanel");
+  el.innerHTML = `<div class="content-card">
+    <div class="row">
+      <div><label>City</label>
+        <select class="field" id="statsCity" style="min-width:160px"><option value="">All cities</option></select>
+      </div>
+      <div><label>Metric</label>
+        <select class="field" id="statsMetric" style="min-width:160px">
+          <option value="completion">Content completion</option>
+          <option value="activity">Active / Inactive users</option>
+        </select>
+      </div>
+      <div><label>Chart type</label>
+        <select class="field" id="statsChartType" style="min-width:140px">
+          <option value="bar">Bar</option>
+          <option value="stacked">Stacked bar</option>
+          <option value="donut">Donut</option>
+        </select>
+      </div>
+    </div>
+    <canvas id="statsCanvas" height="90"></canvas>
+    <div id="personaBreakdown" style="margin-top:14px"></div>
+  </div>`;
+
+  try{
+    const mapping = await loadAdminHubMapping();
+    const citySel = document.getElementById("statsCity");
+    [...new Set(mapping.map(m=>m.city))].forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=c; citySel.appendChild(o); });
+  }catch(e){}
+
+  document.getElementById("statsCity").onchange = loadAndDrawStats;
+  document.getElementById("statsMetric").onchange = loadAndDrawStats;
+  document.getElementById("statsChartType").onchange = loadAndDrawStats;
+  loadAndDrawStats();
+}
+let adminHubMappingCache = null;
+async function loadAdminHubMapping(){
+  if(!adminHubMappingCache) adminHubMappingCache = await api("/api/hub-mapping");
+  return adminHubMappingCache;
+}
+async function loadAndDrawStats(){
+  const city = document.getElementById("statsCity").value;
+  const metric = document.getElementById("statsMetric").value;
+  const type = document.getElementById("statsChartType").value;
+  const canvas = document.getElementById("statsCanvas");
+  const breakdownEl = document.getElementById("personaBreakdown");
+  if(typeof Chart === "undefined"){
+    breakdownEl.innerHTML = `<div class="msg msg-danger">Chart.js didn't load (likely blocked by a network/firewall rule on cdnjs.cloudflare.com) — the graph can't render without it.</div>`;
+    return;
+  }
+  let data;
+  try{ data = await api("/api/admin/stats/summary"+(city?"?city="+encodeURIComponent(city):"")); }
+  catch(e){ breakdownEl.innerHTML = `<div class="msg msg-danger">Could not load stats from the server (${escapeHtml(e.message||"request failed")}).</div>`; return; }
+  const hubs = data.hubs || [];
+  const labels = hubs.map(h=>h.hub);
+  if(labels.length===0){
+    if(statsChart){ statsChart.destroy(); statsChart=null; }
+    breakdownEl.innerHTML = `<div class="empty">No users to show yet.</div>`;
+    return;
+  }
+  const colors = ["#1f8a4c","#a86a00","#c0392b"];
+  const series = metric==="activity"
+    ? [{label:"Active", data:hubs.map(h=>h.active), color:colors[0]}, {label:"Inactive", data:hubs.map(h=>h.inactive), color:colors[2]}]
+    : [{label:"Completed", data:hubs.map(h=>h.completed), color:colors[0]}, {label:"Ongoing", data:hubs.map(h=>h.ongoing), color:colors[1]}, {label:"Pending", data:hubs.map(h=>h.pending), color:colors[2]}];
+
+  try{
+    const ctx = canvas.getContext("2d");
+    if(statsChart) statsChart.destroy();
+    if(type==="donut"){
+      const totals = series.map(s=>s.data.reduce((a,b)=>a+b,0));
+      statsChart = new Chart(ctx, { type:"doughnut", data:{ labels: series.map(s=>s.label), datasets:[{ data: totals, backgroundColor: series.map(s=>s.color) }] } });
+    } else {
+      statsChart = new Chart(ctx, {
+        type:"bar",
+        data:{ labels, datasets: series.map(s=>({ label:s.label, data:s.data, backgroundColor:s.color })) },
+        options: { responsive:true, scales: type==="stacked" ? { x:{stacked:true}, y:{stacked:true} } : {}, onClick: (evt, els)=>{ if(els.length && metric==="completion"){ const hub = labels[els[0].index]; state.statsHub = hub; loadPersonaBreakdown(hub); } } }
+      });
+    }
+  }catch(e){
+    console.error("Chart render failed:", e);
+    breakdownEl.innerHTML = `<div class="msg msg-danger">Chart failed to render (${escapeHtml(e.message||"unknown error")}) — check the browser console for details.</div>`;
+    return;
+  }
+  breakdownEl.innerHTML = metric==="completion" ? `<p style="font-size:11px;color:var(--muted)">Click a hub's bar above to see the persona-wise breakdown for that hub.</p>` : "";
+  if(metric==="completion" && state.statsHub && labels.includes(state.statsHub)) loadPersonaBreakdown(state.statsHub);
+}
+async function loadPersonaBreakdown(hub){
+  const el = document.getElementById("personaBreakdown");
+  el.innerHTML = `<div class="empty">Loading ${escapeHtml(hub)}…</div>`;
+  let data;
+  try{ data = await api("/api/admin/stats/summary?hub="+encodeURIComponent(hub)); }
+  catch(e){ el.innerHTML = `<div class="empty">Could not load breakdown.</div>`; return; }
+  const personas = data.personas || [];
+  if(personas.length===0){ el.innerHTML = `<div class="empty">No data for ${escapeHtml(hub)} yet.</div>`; return; }
+  el.innerHTML = `<div class="section-title" style="margin-top:0">Persona breakdown — ${escapeHtml(hub)}</div><canvas id="personaCanvas" height="110"></canvas>`;
+  const ctx = document.getElementById("personaCanvas").getContext("2d");
+  if(statsPersonaChart) statsPersonaChart.destroy();
+  statsPersonaChart = new Chart(ctx, {
+    type:"bar",
+    data:{ labels: personas.map(p=>p.persona), datasets:[
+      { label:"Completed", data: personas.map(p=>p.completed), backgroundColor:"#1f8a4c" },
+      { label:"Ongoing", data: personas.map(p=>p.ongoing), backgroundColor:"#a86a00" },
+      { label:"Pending", data: personas.map(p=>p.pending), backgroundColor:"#c0392b" }
+    ]},
+    options: { responsive:true, scales:{ x:{stacked:true}, y:{stacked:true} } }
+  });
+}
+
+// ---------------- ASSIGN CONTENT TO USERS ----------------
+let cachedAsgUsers = [];
+let assignSelectedContent = new Set();
+let assignSelectedUsers = new Set();
+let lastAsgFilteredIds = [];
+
+async function renderAssignPanel(){
+  const el = document.getElementById("assignPanel");
+  el.innerHTML = `<div class="content-card">
+    <label>Persona</label>
+    <select class="field" id="asgPersona"></select>
+    <label>Content to assign (select one or more)</label>
+    <div id="asgContentList" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:8px">Loading…</div>
+    <label>Search users by name or phone</label>
+    <input class="field" id="asgUserSearch" placeholder="Type to filter…">
+    <label style="display:flex;align-items:center;gap:6px;margin:4px 0"><input type="checkbox" id="asgSelectAll"> Select all users currently listed below (use this when content applies to everyone)</label>
+    <div id="asgUserList" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:8px">Loading…</div>
+    <label>Completion deadline (optional — leave blank for no deadline)</label>
+    <input class="field" id="asgDueDate" type="date">
+    <button class="btn btn-primary btn-sm" id="asgSubmit" style="margin-top:6px">📌 Assign</button>
+    <div id="asgMsg"></div>
+  </div>
+  <div class="content-card">
+    <label>Or bulk-assign via spreadsheet upload (.xlsx or .csv)</label>
+    <p style="font-size:11px;color:var(--muted);margin:-2px 0 6px">Columns: <b>User Name</b>, <b>Phone</b>, <b>Topic / Module</b>, <b>Completion Date</b> (optional — blank means no deadline). Phone matches the user; Topic/Module is matched against that user's assigned role(s).</p>
+    <button class="btn btn-sm" id="asgTemplateBtn" type="button">⬇ Download template</button>
+    <input class="field" type="file" id="asgBulkFile" accept=".xlsx,.xls,.csv">
+    <button class="btn btn-sm" id="asgBulkSubmit">⬆ Upload & Assign</button>
+    <div id="asgBulkResult"></div>
+  </div>`;
+
+  document.getElementById("asgTemplateBtn").onclick = ()=>{
+    const csv = "User Name,Phone,Topic / Module,Completion Date\r\n,9876543210,Module 1: Safety Basics,\r\n";
+    const blob = new Blob([csv], {type:"text/csv"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "assign-content-template.csv";
+    a.click();
+  };
+
+  const personaSel = document.getElementById("asgPersona");
+  PERSONAS.forEach(p=>{ const o=document.createElement("option"); o.value=p; o.textContent=p; personaSel.appendChild(o); });
+  personaSel.onchange = loadAsgContent;
+  await loadAsgContent();
+
+  try{ cachedAsgUsers = await api("/api/admin/users"); }catch(e){ cachedAsgUsers = []; }
+  renderAsgUserList("");
+  document.getElementById("asgUserSearch").oninput = (e)=> renderAsgUserList(e.target.value);
+  document.getElementById("asgSelectAll").onchange = (e)=>{
+    lastAsgFilteredIds.forEach(id=>{ if(e.target.checked) assignSelectedUsers.add(id); else assignSelectedUsers.delete(id); });
+    renderAsgUserList(document.getElementById("asgUserSearch").value);
+  };
+
+  document.getElementById("asgSubmit").onclick = async ()=>{
+    const msg = document.getElementById("asgMsg");
+    if(assignSelectedContent.size===0 || assignSelectedUsers.size===0){ msg.innerHTML=`<div class="msg msg-danger">Select at least one content item and one user.</div>`; return; }
+    const dueDateVal = document.getElementById("asgDueDate").value;
+    const dueDate = dueDateVal ? new Date(dueDateVal+"T23:59:59").getTime() : null;
+    try{
+      const result = await api("/api/admin/assign", {method:"POST", body: JSON.stringify({
+        contentIds: Array.from(assignSelectedContent),
+        uids: Array.from(assignSelectedUsers),
+        dueDate
+      })});
+      msg.innerHTML = `<div class="msg msg-ok">Assigned to ${result.assignedUsers.length} user(s): ${result.assignedUsers.map(u=>escapeHtml(u.name)).join(", ")}.</div>`;
+      assignSelectedContent.clear(); assignSelectedUsers.clear();
+      loadAsgContent(); renderAsgUserList(document.getElementById("asgUserSearch").value);
+    }catch(e){ msg.innerHTML=`<div class="msg msg-danger">Assignment failed.</div>`; }
+  };
+
+  document.getElementById("asgBulkSubmit").onclick = async ()=>{
+    const fileInput = document.getElementById("asgBulkFile");
+    const resEl = document.getElementById("asgBulkResult");
+    if(!fileInput.files[0]){ showToast("Choose a file first."); return; }
+    const fd = new FormData(); fd.append("file", fileInput.files[0]);
+    resEl.innerHTML = `<div class="msg">Processing…</div>`;
+    try{
+      const result = await apiUpload("/api/admin/assign-bulk-upload", fd);
+      let html = `<div class="msg msg-ok">Processed ${result.total} row(s) — assigned ${result.assigned}, skipped ${result.skipped.length}.</div>`;
+      if(result.skipped.length>0){
+        html += `<table><tr><th>Row</th><th>Name</th><th>Phone</th><th>Topic</th><th>Reason</th></tr>` +
+          result.skipped.map(s=>`<tr><td>${s.row}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.phone)}</td><td>${escapeHtml(s.topic)}</td><td>${escapeHtml(s.reason)}</td></tr>`).join("") +
+          `</table>`;
+      }
+      resEl.innerHTML = html;
+    }catch(e){ resEl.innerHTML = `<div class="msg msg-danger">Upload failed.</div>`; }
+  };
+}
+
+async function loadAsgContent(){
+  const persona = document.getElementById("asgPersona").value;
+  const listEl = document.getElementById("asgContentList");
+  listEl.innerHTML = "Loading…";
+  let rows;
+  try{ rows = await api("/api/admin/content?persona="+encodeURIComponent(persona)); }
+  catch(e){ listEl.innerHTML = `<div class="empty">Could not load content.</div>`; return; }
+  if(rows.length===0){ listEl.innerHTML = `<div class="empty">No content for ${escapeHtml(persona)} yet.</div>`; return; }
+  listEl.innerHTML = "";
+  rows.forEach(({id,data:c})=>{
+    const row = document.createElement("label");
+    row.style.cssText = "display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0";
+    row.innerHTML = `<input type="checkbox" ${assignSelectedContent.has(id)?"checked":""}> <b>${escapeHtml(c.title)}</b> <span class="pill">${escapeHtml(c.topic||"General")}</span>`;
+    row.querySelector("input").onchange = (e)=>{ if(e.target.checked) assignSelectedContent.add(id); else assignSelectedContent.delete(id); };
+    listEl.appendChild(row);
+  });
+}
+
+function renderAsgUserList(filterText){
+  const listEl = document.getElementById("asgUserList");
+  if(!listEl) return;
+  const q = (filterText||"").trim().toLowerCase();
+  const filtered = cachedAsgUsers.filter(({data:p})=> !q || (p.name||"").toLowerCase().includes(q) || (p.phone||"").toLowerCase().includes(q));
+  lastAsgFilteredIds = filtered.map(({id})=>id);
+  const selAll = document.getElementById("asgSelectAll");
+  if(selAll) selAll.checked = lastAsgFilteredIds.length>0 && lastAsgFilteredIds.every(id=>assignSelectedUsers.has(id));
+  if(filtered.length===0){ listEl.innerHTML = `<div class="empty">No matching users.</div>`; return; }
+  listEl.innerHTML = "";
+  filtered.forEach(({id,data:p})=>{
+    const row = document.createElement("label");
+    row.style.cssText = "display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0";
+    row.innerHTML = `<input type="checkbox" ${assignSelectedUsers.has(id)?"checked":""}> <b>${escapeHtml(p.name)}</b> <span style="color:var(--muted)">${escapeHtml(p.phone)} · ${escapeHtml((p.roles||[]).join(", "))}</span>`;
+    row.querySelector("input").onchange = (e)=>{ if(e.target.checked) assignSelectedUsers.add(id); else assignSelectedUsers.delete(id); if(selAll) selAll.checked = lastAsgFilteredIds.every(x=>assignSelectedUsers.has(x)); };
+    listEl.appendChild(row);
+  });
+}
+
+async function loadAdminContent(){
+  const el = document.getElementById("adminContentList");
+  let rows;
+  try{ rows = await api("/api/admin/content?persona="+encodeURIComponent(state.persona)); }
+  catch(e){ el.innerHTML = `<div class="empty">Could not load content.</div>`; return; }
+
+  // Derive the topic list from content itself (in the order topics were
+  // first used) and keep "General" always available as a fallback.
+  const seen = [];
+  rows.forEach(({data:c})=>{ const t=(c.topic&&c.topic.trim())||"General"; if(!seen.includes(t)) seen.push(t); });
+  if(!seen.includes("General")) seen.push("General");
+  adminTopics = seen;
+  if(!state.topic || !adminTopics.includes(state.topic)) state.topic = adminTopics[0];
+  renderTopicTabs();
+  loadAdminQuestions();
+  loadAdminSubs();
+
+  if(rows.length===0){ el.innerHTML=`<div class="empty">No content yet.</div>`; return; }
+
+  const groups = new Map();
+  rows.forEach(item=>{ const t=(item.data.topic&&item.data.topic.trim())||"General"; if(!groups.has(t)) groups.set(t,[]); groups.get(t).push(item); });
+  el.innerHTML = "";
+  groups.forEach((items, topic)=>{
+    const h = document.createElement("div");
+    h.style.cssText = "font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 4px";
+    h.textContent = "📘 "+topic;
+    el.appendChild(h);
+    items.forEach(({id,data:c})=>{
+      const row = document.createElement("div");
+      row.className="content-card";
+      row.innerHTML = `<div class="row"><div><span class="tag">${(c.type||"link").toUpperCase()}</span>
+      <h3 style="margin:4px 0">${escapeHtml(c.title)}</h3></div>
+      <div class="top-actions">
+        <button class="btn btn-sm" data-e>Edit</button>
+        <button class="btn btn-sm btn-danger" data-d>Delete</button>
+      </div></div>`;
+      row.querySelector("[data-e]").onclick = ()=>openContentForm({id, data:()=>c});
+      row.querySelector("[data-d]").onclick = (e)=> armConfirm(e.target, async ()=>{
+        try{ await api("/api/admin/content/"+id, {method:"DELETE"}); showToast("Deleted."); loadAdminContent(); }
+        catch(err){ showToast("Delete failed — admin access required."); }
+      });
+      el.appendChild(row);
+    });
+  });
+}
+
+function openContentForm(doc){
+  const c = doc ? doc.data() : {type:"ppt",title:"",description:"",url:"",topic: (state.topic && state.topic!=="General") ? state.topic : ""};
+  const wrap = document.createElement("div");
+  wrap.className="content-card";
+  wrap.innerHTML = `
+  <label>Type</label>
+  <select class="field" id="cType">
+    <option value="ppt">PPT / Presentation</option>
+    <option value="video">Video (uploaded file / direct URL)</option>
+    <option value="youtube">YouTube Video (unlisted link)</option>
+    <option value="doc">Document</option>
+    <option value="image">Image / Poster</option>
+    <option value="link">Link</option>
+  </select>
+  <label>Topic / Module</label>
+  <input class="field" id="cTopic" list="topicSuggestions" placeholder="e.g. Module 1: Safety Basics (leave blank for General)" value="${escapeAttr(c.topic||"")}">
+  <datalist id="topicSuggestions">${adminTopics.map(t=>`<option value="${escapeAttr(t)}">`).join("")}</datalist>
+  <p style="font-size:11px;color:var(--muted);margin:-2px 0 6px">Content sharing a topic is grouped together for staff and unlocks one shared assessment once all of it is completed.</p>
+  <label>Title</label><input class="field" id="cTitle" value="${escapeAttr(c.title)}">
+  <label>Description</label><input class="field" id="cDesc" value="${escapeAttr(c.description)}">
+  <label id="cUrlLabel">URL (external link, or leave blank and upload a file below)</label>
+  <input class="field" id="cUrl" value="${escapeAttr(c.url||"")}" placeholder="">
+  <div id="cFileWrap">
+    <label>Or upload a file (video/PDF/PPT/image — up to ${MAX_UPLOAD_MB}MB)</label>
+    <input class="field" type="file" id="cFile">
+    <div id="cFileInfo" style="font-size:11px;color:var(--muted);margin-top:-4px"></div>
+  </div>
+  <div id="cDurationWrap" class="hidden">
+    <label>Required watch time before staff can mark this video complete (MM:SS) *</label>
+    <p style="font-size:11px;color:var(--muted);margin:2px 0 6px">Type it as minutes:seconds — e.g. a 24-second video is <code>00:24</code>, five and a half minutes is <code>05:30</code>. Max 15:00.</p>
+    <input class="field" id="cDuration" type="text" placeholder="MM:SS" maxlength="5" value="${c.requiredMinutes?minutesToMmss(c.requiredMinutes):""}">
+    <p style="font-size:11px;color:var(--muted)">Staff must accumulate this much actual playing time — pauses and seek-ahead don't count toward it — before "Mark as completed" becomes clickable for them. This is tracked for real on YouTube videos too, not just uploaded ones.</p>
+  </div>
+  <p style="font-size:11px;color:var(--muted)">Staff view everything on the dashboard itself — pick a URL/file that's viewable without a login wall so the in-page preview works.</p>
+  <div class="top-actions">
+    <button class="btn btn-primary btn-sm" id="cSave">Save</button>
+    <button class="btn btn-sm" id="cCancel">Cancel</button>
+  </div>`;
+  document.getElementById("adminContentList").prepend(wrap);
+  const typeSel = wrap.querySelector("#cType");
+  const durWrap = wrap.querySelector("#cDurationWrap");
+  const fileWrap = wrap.querySelector("#cFileWrap");
+  const urlLabel = wrap.querySelector("#cUrlLabel");
+  const urlInput = wrap.querySelector("#cUrl");
+  typeSel.value = c.type;
+  const syncVisibility = ()=>{
+    const t = typeSel.value;
+    durWrap.classList.toggle("hidden", t!=="video" && t!=="youtube");
+    fileWrap.classList.toggle("hidden", t==="youtube"); // YouTube is paste-only, no file upload
+    if(t==="youtube"){
+      urlLabel.textContent = "YouTube URL *";
+      urlInput.placeholder = "e.g. https://youtu.be/XXXXXXXXXXX or https://www.youtube.com/watch?v=XXXXXXXXXXX";
+    } else {
+      urlLabel.textContent = "URL (external link, or leave blank and upload a file below)";
+      urlInput.placeholder = "";
+    }
+  };
+  typeSel.onchange = syncVisibility;
+  syncVisibility();
+  const fileInput = wrap.querySelector("#cFile");
+  const fileInfo = wrap.querySelector("#cFileInfo");
+  fileInput.onchange = ()=>{
+    const f = fileInput.files[0];
+    if(!f){ fileInfo.textContent=""; return; }
+    const mb = (f.size/(1024*1024));
+    let msg = `Selected file: ${mb.toFixed(1)}MB`;
+    if(mb>50){
+      msg += ` — bigger than 50MB. If your Supabase project is still on the Free plan, uploads over 50MB will fail no matter what (Free plan hard-caps the "Global file size limit" in Storage Settings at 50MB). Upgrade to Supabase Pro and raise that setting to allow this, or use a YouTube (unlisted) link instead.`;
+    }
+    fileInfo.textContent = msg;
+    fileInfo.style.color = mb>50 ? "#f0ad4e" : "var(--muted)";
+  };
+  wrap.querySelector("#cCancel").onclick = ()=>wrap.remove();
+  wrap.querySelector("#cSave").onclick = async ()=>{
+    let url = wrap.querySelector("#cUrl").value.trim();
+    const file = wrap.querySelector("#cFile").files[0];
+    const type = typeSel.value;
+    let requiredMinutes = null;
+    if(type==="youtube"){
+      if(!extractYoutubeId(url)){ showToast("Enter a valid YouTube URL (or just the video ID)."); return; }
+    }
+    if(type==="video" || type==="youtube"){
+      const raw = wrap.querySelector("#cDuration").value.trim();
+      const secs = mmssToSeconds(raw);
+      if(secs===null || secs<=0){ showToast("Enter the required watch time as MM:SS (e.g. 05:30)."); return; }
+      if(secs>900){ showToast("Required watch time can't be more than 15:00."); return; }
+      requiredMinutes = secs/60;
+    }
+    if(file && type!=="youtube"){
+      try{
+        const fd = new FormData(); fd.append("file", file);
+        const res = await apiUpload("/api/admin/upload", fd);
+        url = res.url;
+      }
+      catch(e){
+        if(e && e.data && e.data.error==="file_too_large") showToast(`That file is over the ${e.data.maxMb}MB server limit.`);
+        else if(e && e.data && e.data.error==="file_too_large_for_bucket") showToast("Upload rejected by Supabase Storage — the project's file size limit (Storage → Settings) is lower than this file. On the Free plan that's capped at 50MB.");
+        else showToast("Upload failed.");
+        return;
+      }
+    }
+    const data = {
+      persona: state.persona,
+      type,
+      topic: wrap.querySelector("#cTopic").value.trim() || "General",
+      title: wrap.querySelector("#cTitle").value.trim()||"Untitled",
+      description: wrap.querySelector("#cDesc").value.trim(),
+      url,
+      requiredMinutes,
+      createdAt: (doc && c.createdAt) || Date.now()
+    };
+    try{
+      if(doc) await api("/api/admin/content/"+doc.id, {method:"PUT", body: JSON.stringify(data)});
+      else await api("/api/admin/content", {method:"POST", body: JSON.stringify(data)});
+      wrap.remove(); loadAdminContent();
+    }catch(e){ showToast("Save failed — admin access required."); }
+  };
+}
+
+async function loadAdminQuestions(){
+  const el = document.getElementById("adminQList");
+  if(!el) return;
+  el.innerHTML = "Loading…";
+  let qs, passScore;
+  try{ const j = await api("/api/admin/questions?persona="+encodeURIComponent(state.persona)+"&topic="+encodeURIComponent(state.topic)); qs = j.questions; passScore = j.passScore; }
+  catch(e){ el.innerHTML=`<div class="empty">Could not load questions.</div>`; return; }
+  const psInput = document.getElementById("passScoreInput");
+  if(psInput) psInput.value = passScore != null ? passScore : 80;
+  if(qs.length===0){ el.innerHTML=`<div class="empty">No questions yet for "${escapeHtml(state.topic)}".</div>`; return; }
+  el.innerHTML="";
+  qs.forEach((q,i)=>{
+    const row = document.createElement("div");
+    row.className="content-card row";
+    const isMcq = q.type==="mcq" && Array.isArray(q.options);
+    row.innerHTML = `<div style="flex:1;min-width:200px">
+      <div>${i+1}. ${escapeHtml(q.text)} ${isMcq?'<span class="pill">multiple choice</span>':'<span class="pill">free text</span>'}</div>
+      ${isMcq ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:6px">${q.options.map(o=> o===q.correctAnswer ? `<span class="tag" style="background:#e6f6ec;color:var(--ok)">✅ ${escapeHtml(o)}</span>` : `<span class="tag">${escapeHtml(o)}</span>`).join("")}</div>` : ""}
+    </div>
+    <button class="btn btn-sm btn-danger">Remove</button>`;
+    row.querySelector("button").onclick = async ()=>{
+      try{ await api("/api/admin/questions/"+q.id+"?persona="+encodeURIComponent(state.persona)+"&topic="+encodeURIComponent(state.topic), {method:"DELETE"}); loadAdminQuestions(); }
+      catch(e){ showToast("Remove failed."); }
+    };
+    el.appendChild(row);
+  });
+}
+
+function openQuestionForm(){
+  const el = document.getElementById("adminQList");
+  if(document.getElementById("qFormBox")) return;
+  const wrap = document.createElement("div");
+  wrap.className="content-card";
+  wrap.id="qFormBox";
+  wrap.innerHTML = `<label>New question for "${escapeHtml(state.topic)}"</label>
+  <input class="field" id="qText" placeholder="Enter the question text">
+  <label>Answer type</label>
+  <select class="field" id="qType">
+    <option value="text">Free text (staff type their own answer)</option>
+    <option value="mcq">Multiple choice (staff pick one option)</option>
+  </select>
+  <div id="qOptionsWrap" class="hidden">
+    <label>Options (at least 2) — mark the radio next to the correct one</label>
+    <div id="qOptionsList"></div>
+    <button class="btn btn-sm" id="qAddOption" type="button">＋ Add option</button>
+  </div>
+  <div class="top-actions" style="margin-top:10px">
+    <button class="btn btn-primary btn-sm" id="qSave">Add</button>
+    <button class="btn btn-sm" id="qCancel">Cancel</button>
+  </div>`;
+  el.prepend(wrap);
+  const typeSel = wrap.querySelector("#qType");
+  const optsWrap = wrap.querySelector("#qOptionsWrap");
+  const optsList = wrap.querySelector("#qOptionsList");
+  function addOptionInput(val, isCorrect){
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center";
+    row.innerHTML = `<input type="radio" name="qCorrectOpt" data-correct title="Mark as the correct answer" ${isCorrect?"checked":""}>
+      <input class="field" data-opt style="margin:4px 0" value="${escapeAttr(val||"")}">
+      <button class="btn btn-sm" type="button" data-remove>✕</button>`;
+    row.querySelector("[data-remove]").onclick = ()=>{ if(optsList.children.length>2) row.remove(); else showToast("At least 2 options are required."); };
+    optsList.appendChild(row);
+  }
+  addOptionInput("", true); addOptionInput("", false);
+  typeSel.onchange = ()=> optsWrap.classList.toggle("hidden", typeSel.value!=="mcq");
+  wrap.querySelector("#qAddOption").onclick = ()=> addOptionInput("", false);
+  document.getElementById("qCancel").onclick = ()=>wrap.remove();
+  document.getElementById("qSave").onclick = async ()=>{
+    const text = document.getElementById("qText").value.trim();
+    if(!text){ showToast("Enter a question first."); return; }
+    const type = typeSel.value;
+    const payload = { persona: state.persona, topic: state.topic, text, type };
+    if(type==="mcq"){
+      const options = [];
+      let correctAnswer = null;
+      Array.from(optsList.children).forEach(row=>{
+        const val = row.querySelector("[data-opt]").value.trim();
+        const isChecked = row.querySelector("[data-correct]").checked;
+        if(val){ options.push(val); if(isChecked) correctAnswer = val; }
+      });
+      if(options.length<2){ showToast("Enter at least 2 non-empty options."); return; }
+      if(!correctAnswer){ showToast("Mark which option is the correct answer."); return; }
+      payload.options = options;
+      payload.correctAnswer = correctAnswer;
+    }
+    try{
+      await api("/api/admin/questions", {method:"POST", body: JSON.stringify(payload)});
+      showToast("Question added.");
+      loadAdminQuestions();
+    }catch(e){ showToast("Save failed — admin access required."); }
+  };
+}
+
+async function loadAdminSubs(){
+  const el = document.getElementById("adminSubs");
+  if(!el) return;
+  el.innerHTML = "Loading…";
+  let rows;
+  try{ rows = await api("/api/admin/submissions?persona="+encodeURIComponent(state.persona)+"&topic="+encodeURIComponent(state.topic)); }
+  catch(e){ el.innerHTML=`<div class="empty">Could not load submissions.</div>`; return; }
+  if(rows.length===0){ el.innerHTML=`<div class="empty">No submissions yet for "${escapeHtml(state.topic)}".</div>`; return; }
+  let bodyRows = "";
+  rows.forEach(s=>{
+    const scoreText = s.score ? `${s.score.correct}/${s.score.total}` : "—";
+    bodyRows += `<tr><td>${s.uid?s.uid.slice(0,10):"?"}…</td><td>${new Date(s.submittedAt).toLocaleString()}</td><td>${Object.keys(s.answers||{}).length}</td><td>${scoreText}</td></tr>`;
+  });
+  el.innerHTML = `<table><tr><th>Viewer</th><th>Submitted</th><th>Answers</th><th>Score</th></tr>${bodyRows}</table>`;
+}
+
+function escapeHtml(s){ return (s==null?"":String(s)).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+
+init();
+</script>
+</body>
+</html>
