@@ -33,6 +33,8 @@ header b{flex:1;font-size:18px}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .shutter{display:flex;justify-content:center;align-items:center;gap:16px;padding:12px}#share{background:#1a7f4b}
 .hud{position:absolute;left:0;right:0;top:10px;text-align:center;pointer-events:none}.hud span{display:inline-block;background:rgba(0,0,0,.65);color:#fff;padding:6px 12px;border-radius:99px;font-size:14px;max-width:92%}
+input[readonly]{background:#f3f5f7;letter-spacing:1px}.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#snap.ok{background:var(--ok)}#snap.ok::after{content:"✓";color:#fff;font-size:38px;font-weight:700}
 .guide{position:absolute;inset:28% 8%;border:3px dashed rgba(255,255,255,.75);border-radius:12px;pointer-events:none}
 #snap{width:76px;height:76px;border-radius:50%;border:6px solid var(--ink);background:var(--acc);padding:0}
 #snap:active{transform:scale(.94)}
@@ -75,9 +77,10 @@ header b{flex:1;font-size:18px}
     <button class="btn sm ghost" id="out" style="color:#fff;border-color:#4a5d6c">Sign out</button>
   </header>
   <div class="chips"><span class="chip" id="cNet"></span><span class="chip" id="cGps"></span><span class="chip" id="cQ"></span></div>
-  <div class="shipid"><input id="sid" placeholder="Shipment / AWB number" autocapitalize="characters" autocomplete="off"><button class="btn" id="scan">Scan</button></div>
-  <div class="cam"><video id="vid" autoplay playsinline muted></video><div id="guide" class="guide" hidden></div><div class="hud"><span id="hud">Starting camera…</span></div><div id="camerr"></div><div id="flash"></div></div>
+  <div class="shipid"><input id="sid" readonly placeholder="Shipment ID appears after the first tap" autocomplete="off"><button class="btn" id="retake" hidden>Retake</button></div>
+  <div class="cam"><video id="vid" autoplay playsinline muted></video><canvas id="still" hidden></canvas><div id="guide" class="guide"></div><div class="hud"><span id="hud">Starting camera…</span></div><div id="camerr"></div><div id="flash"></div></div>
   <div class="shutter"><button id="snap" aria-label="Take photo"></button><button class="btn" id="share" hidden>Share on WhatsApp</button></div>
+  <div style="text-align:center;padding:0 12px 6px"><button class="btn ghost sm" id="manual" hidden>Can't scan? Enter the number</button></div>
   <div class="queue" id="list"></div>
 </section>
 <div id="toast" role="status"></div>
@@ -150,31 +153,66 @@ async function startCam(){
   if($('#vid').srcObject) return;
   try{
     const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
-    $('#vid').srcObject=s; $('#camerr').textContent=''; autoScan();
+    $('#vid').srcObject=s; $('#camerr').textContent=''; resetShot();
   }catch(e){ $('#camerr').textContent='Camera is blocked. Allow camera access in the browser settings, then reopen the app.'; }
 }
 
-/* ---- Barcode scan (on-device, works offline). Starts by itself when the camera opens. ---- */
-let scanning=false, sidScanned=false, detector=null, scanRun=0, lastShot=null;
+/* ---- Two taps: 1) take the photo and read the barcode from it, 2) save ---- */
+let shot=null, curSid='', scannedFlag=false, detector=null, lastShot=null, busy=false;
 const hud=t=>{ $('#hud').textContent=t; };
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-$('#sid').addEventListener('input',()=>sidScanned=false);
-async function autoScan(){
-  if(!('BarcodeDetector' in window)){ hud('Barcode scanning is not supported on this phone. Type the number.'); $('#scan').hidden=true; return; }
-  const v=$('#vid'); for(let i=0;i<150&&!v.videoWidth;i++) await sleep(200);
-  if(!v.videoWidth) return;
-  detector=detector||new BarcodeDetector();
-  const id=++scanRun; scanning=true; $('#scan').textContent='Stop'; $('#guide').hidden=false; hud('Point the camera at the barcode');
-  while(scanning&&id===scanRun){
-    try{ const r=await detector.detect(v);
-      if(r.length){ $('#sid').value=r[0].rawValue.trim(); sidScanned=true; navigator.vibrate?.(80); hud('✓ '+$('#sid').value+'  Now take the photo'); break; } }catch{}
-    await sleep(200);
-  }
-  if(id===scanRun){ scanning=false; $('#scan').textContent='Rescan'; $('#guide').hidden=true; }
+const mask=id=>id.length<=5?'•'.repeat(id.length):id.slice(0,2)+'•'.repeat(id.length-5)+id.slice(-3);
+function resetShot(){
+  shot=null; curSid=''; scannedFlag=false;
+  $('#still').hidden=true; $('#sid').value=''; $('#snap').classList.remove('ok');
+  $('#retake').hidden=true; $('#manual').hidden=true; $('#guide').hidden=false;
+  hud('Aim at the shipment label, then tap the button');
 }
-$('#scan').onclick=()=>{
-  if(scanning){ scanRun++; scanning=false; $('#scan').textContent='Rescan'; $('#guide').hidden=true; hud('Scan stopped. Type the number or tap Rescan.'); }
-  else { $('#sid').value=''; sidScanned=false; autoScan(); }
+async function takeFirst(){
+  const v=$('#vid');
+  if(!v.videoWidth) return toast('Camera not ready');
+  if(!pos) return toast('Waiting for GPS location');
+  const sc=Math.min(1, MAX_SIDE/Math.max(v.videoWidth,v.videoHeight)), c=$('#still');
+  c.width=Math.round(v.videoWidth*sc); c.height=Math.round(v.videoHeight*sc);
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  shot={when:new Date(), lat:pos.coords.latitude, lng:pos.coords.longitude, accuracy:pos.coords.accuracy, gpsTime:pos.timestamp};
+  c.hidden=false; $('#guide').hidden=true; $('#retake').hidden=false;
+  if('BarcodeDetector' in window){
+    hud('Reading barcode…');
+    try{
+      detector=detector||new BarcodeDetector(); const r=await detector.detect(c);
+      if(r.length){ curSid=r[0].rawValue.trim(); scannedFlag=true; $('#sid').value=mask(curSid); $('#snap').classList.add('ok'); navigator.vibrate?.(80); hud('✓ Shipment '+mask(curSid)+'  Tap the green button to save'); return; }
+    }catch{}
+    hud('No barcode found. Tap Retake, or enter the number.');
+  } else hud('Barcode scanning is not supported on this phone. Enter the number.');
+  $('#manual').hidden=false;
+}
+async function saveShot(){
+  const c=$('#still'), x=c.getContext('2d');
+  const lines=[`Lat ${shot.lat.toFixed(6)}   Lng ${shot.lng.toFixed(6)}   (±${Math.round(shot.accuracy)} m)`, fmt(shot.when), `Shipment ${curSid}`];
+  const fs=Math.max(14,Math.round(Math.min(c.width,c.height)/30)), lh=fs*1.35, pad=fs*.6, bh=lines.length*lh+pad*2;
+  x.fillStyle='rgba(0,0,0,.62)'; x.fillRect(0,c.height-bh,c.width,bh);
+  x.fillStyle='#fff'; x.font=`600 ${fs}px sans-serif`; x.textBaseline='top';
+  lines.forEach((l,i)=>x.fillText(l,pad,c.height-bh+pad+i*lh));
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',JPEG_Q));
+  await putP({id:crypto.randomUUID(), shipmentId:curSid, scanned:scannedFlag, user:getUser().u, lat:shot.lat, lng:shot.lng, accuracy:shot.accuracy,
+    deviceTime:shot.when.toISOString(), gpsTime:new Date(shot.gpsTime).toISOString(), size:blob.size, blob, status:'pending'});
+  lastShot={blob, sid:curSid, lat:shot.lat, lng:shot.lng, when:fmt(shot.when)}; $('#share').hidden=false;
+  const f=$('#flash'); f.style.opacity=.8; setTimeout(()=>f.style.opacity=0,120);
+  toast(`Saved · ${Math.round(blob.size/1024)} KB`);
+  resetShot(); refresh();
+  navigator.serviceWorker?.ready.then(r=>r.sync?.register('upload-photos')).catch(()=>{});
+  syncQueue();
+}
+$('#snap').onclick=async()=>{
+  if(busy) return; busy=true;
+  try{ if(!shot) await takeFirst(); else if(!curSid) resetShot(); else await saveShot(); }
+  finally{ busy=false; }
+};
+$('#retake').onclick=resetShot;
+$('#manual').onclick=()=>{
+  const v=(prompt('Enter the shipment number')||'').trim(); if(!v) return;
+  curSid=v; scannedFlag=false; $('#sid').value=mask(v); $('#snap').classList.add('ok'); $('#manual').hidden=true;
+  hud('Shipment '+mask(v)+' (typed)  Tap the green button to save');
 };
 
 /* ---- Share the last photo (opens the phone's share sheet; choose WhatsApp) ---- */
@@ -186,32 +224,6 @@ $('#share').onclick=async()=>{
     if(navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],text});
     else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); toast('This phone cannot share the photo itself; sent the details only.'); }
   }catch(e){ if(e.name!=='AbortError') toast('Could not open sharing.'); }
-};
-
-/* ---- Capture: resize, stamp, compress, save ---- */
-$('#snap').onclick = async () => {
-  const v=$('#vid'), sid=$('#sid').value.trim();
-  if(!sid) return toast('Enter the shipment number first');
-  if(!v.videoWidth) return toast('Camera not ready');
-  if(!pos) return toast('Waiting for GPS location');
-  const now=new Date(), sc=Math.min(1, MAX_SIDE/Math.max(v.videoWidth,v.videoHeight));
-  const c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*sc); c.height=Math.round(v.videoHeight*sc);
-  const x=c.getContext('2d'); x.drawImage(v,0,0,c.width,c.height);
-  const {latitude:lat,longitude:lng,accuracy}=pos.coords;
-  const lines=[`Lat ${lat.toFixed(6)}   Lng ${lng.toFixed(6)}   (±${Math.round(accuracy)} m)`, fmt(now), `Shipment ${sid}`];
-  const fs=Math.max(14,Math.round(Math.min(c.width,c.height)/30)), lh=fs*1.35, pad=fs*.6, bh=lines.length*lh+pad*2;
-  x.fillStyle='rgba(0,0,0,.62)'; x.fillRect(0,c.height-bh,c.width,bh);
-  x.fillStyle='#fff'; x.font=`600 ${fs}px sans-serif`; x.textBaseline='top';
-  lines.forEach((l,i)=>x.fillText(l,pad,c.height-bh+pad+i*lh));
-  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',JPEG_Q));
-  await putP({id:crypto.randomUUID(), shipmentId:sid, scanned:sidScanned, user:getUser().u, lat, lng, accuracy,
-    deviceTime:now.toISOString(), gpsTime:new Date(pos.timestamp).toISOString(), size:blob.size, blob, status:'pending'});
-  lastShot={blob,sid,lat,lng,when:fmt(now)}; $('#share').hidden=false;
-  const f=$('#flash'); f.style.opacity=.8; setTimeout(()=>f.style.opacity=0,120);
-  toast(`Saved · ${Math.round(blob.size/1024)} KB`);
-  refresh();
-  navigator.serviceWorker?.ready.then(r=>r.sync?.register('upload-photos')).catch(()=>{});
-  syncQueue();
 };
 
 /* ---- Upload + sync ---- */
@@ -240,7 +252,7 @@ async function refresh(){
   const all=(await allP()).sort((a,b)=>b.deviceTime.localeCompare(a.deviceTime));
   const pend=all.filter(p=>p.status==='pending').length;
   const q=$('#cQ'); q.textContent=pend?`${pend} waiting to upload`:'All uploaded'; q.className='chip '+(pend?'warn':'ok');
-  $('#list').innerHTML = all.length ? all.slice(0,8).map(p=>`<div><span><b>${p.shipmentId.replace(/</g,'&lt;')}</b> <span class="e">${new Date(p.deviceTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></span><span style="color:var(--${p.status==='synced'?'ok':'warn'})">${p.status==='synced'?'Uploaded':'Waiting'}</span></div>`).join('') : '<div class="e">No photos yet. Enter a shipment number and tap the orange button.</div>';
+  $('#list').innerHTML = all.length ? all.slice(0,8).map(p=>`<div><span><b>${esc(mask(p.shipmentId))}</b> <span class="e">${new Date(p.deviceTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></span><span style="color:var(--${p.status==='synced'?'ok':'warn'})">${p.status==='synced'?'Uploaded':'Waiting'}</span></div>`).join('') : '<div class="e">No photos yet. Enter a shipment number and tap the orange button.</div>';
 }
 
 /* ---- Install + service worker ---- */
